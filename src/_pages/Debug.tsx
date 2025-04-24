@@ -3,55 +3,29 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import React, { useEffect, useRef, useState } from "react"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
+import remarkMath from "remark-math"
+import rehypeKatex from "rehype-katex"
+import 'katex/dist/katex.min.css'
+
 import ScreenshotQueue from "../components/Queue/ScreenshotQueue"
 import SolutionCommands from "../components/Solutions/SolutionCommands"
 import { Screenshot } from "../types/screenshots"
-import { ComplexitySection, ContentSection } from "./Solutions"
 import { useToast } from "../contexts/toast"
+import { SolutionSidebar, SolutionContent, SolutionSection } from "../components/Solutions/SolutionElements"
 
-const CodeSection = ({
-  title,
-  code,
-  isLoading,
-  currentLanguage
-}: {
-  title: string
-  code: React.ReactNode
-  isLoading: boolean
-  currentLanguage: string
-}) => (
-  <div className="space-y-2">
-    <h2 className="text-[13px] font-medium text-white tracking-wide"></h2>
-    {isLoading ? (
-      <div className="space-y-1.5">
-        <div className="mt-4 flex">
-          <p className="text-xs bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 bg-clip-text text-transparent animate-pulse">
-            Loading solutions...
-          </p>
-        </div>
-      </div>
-    ) : (
-      <div className="w-full">
-        <SyntaxHighlighter
-          showLineNumbers
-          language={currentLanguage == "golang" ? "go" : currentLanguage}
-          style={dracula}
-          customStyle={{
-            maxWidth: "100%",
-            margin: 0,
-            padding: "1rem",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-all",
-            backgroundColor: "rgba(22, 27, 34, 0.5)"
-          }}
-          wrapLongLines={true}
-        >
-          {code as string}
-        </SyntaxHighlighter>
-      </div>
-    )}
-  </div>
-)
+// Interface for structured debug solution
+interface DebugSolution {
+  issues_identified: string;
+  specific_improvements: string;
+  educational_concepts: string;
+  optimizations: string;
+  explanation: string;
+  key_learning: string;
+  code: string;
+  debug_analysis: string;
+}
 
 async function fetchScreenshots(): Promise<Screenshot[]> {
   try {
@@ -84,6 +58,7 @@ const Debug: React.FC<DebugProps> = ({
 }) => {
   const [tooltipVisible, setTooltipVisible] = useState(false)
   const [tooltipHeight, setTooltipHeight] = useState(0)
+  const [activeSection, setActiveSection] = useState<string>("issues_identified")
   const { showToast } = useToast()
 
   const { data: screenshots = [], refetch } = useQuery<Screenshot[]>({
@@ -94,54 +69,19 @@ const Debug: React.FC<DebugProps> = ({
     refetchOnWindowFocus: false
   })
 
-  const [newCode, setNewCode] = useState<string | null>(null)
-  const [thoughtsData, setThoughtsData] = useState<string[] | null>(null)
-  const [timeComplexityData, setTimeComplexityData] = useState<string | null>(
-    null
-  )
-  const [spaceComplexityData, setSpaceComplexityData] = useState<string | null>(
-    null
-  )
-  const [debugAnalysis, setDebugAnalysis] = useState<string | null>(null)
+  const [debugSolution, setDebugSolution] = useState<DebugSolution | null>(null)
 
   const queryClient = useQueryClient()
   const contentRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    // Try to get the new solution data from cache first
-    const newSolution = queryClient.getQueryData(["new_solution"]) as {
-      code: string
-      debug_analysis: string
-      thoughts: string[]
-      time_complexity: string
-      space_complexity: string
-    } | null
+    // Try to get the debug solution data from cache first
+    const cachedSolution = queryClient.getQueryData(["new_solution"]) as DebugSolution | null
 
-    // If we have cached data, set all state variables to the cached data
-    if (newSolution) {
-      console.log("Found cached debug solution:", newSolution);
-      
-      if (newSolution.debug_analysis) {
-        // Store the debug analysis in its own state variable
-        setDebugAnalysis(newSolution.debug_analysis);
-        // Set code separately for the code section
-        setNewCode(newSolution.code || "// Debug mode - see analysis below");
-        
-        // Process thoughts/analysis points
-        if (newSolution.debug_analysis.includes('\n\n')) {
-          const sections = newSolution.debug_analysis.split('\n\n').filter(Boolean);
-          // Pick first few sections as thoughts
-          setThoughtsData(sections.slice(0, 3));
-        } else {
-          setThoughtsData(["Debug analysis based on your screenshots"]);
-        }
-      } else {
-        // Fallback to code or default
-        setNewCode(newSolution.code || "// No analysis available");
-        setThoughtsData(newSolution.thoughts || ["Debug analysis based on your screenshots"]);
-      }
-      setTimeComplexityData(newSolution.time_complexity || "N/A - Debug mode")
-      setSpaceComplexityData(newSolution.space_complexity || "N/A - Debug mode")
+    // If we have cached data, set the debug solution
+    if (cachedSolution) {
+      console.log("Found cached debug solution:", cachedSolution)
+      setDebugSolution(cachedSolution)
       setIsProcessing(false)
     }
 
@@ -150,48 +90,12 @@ const Debug: React.FC<DebugProps> = ({
       window.electronAPI.onScreenshotTaken(() => refetch()),
       window.electronAPI.onResetView(() => refetch()),
       window.electronAPI.onDebugSuccess((data) => {
-        console.log("Debug success event received with data:", data);
-        queryClient.setQueryData(["new_solution"], data);
+        console.log("Debug success event received with data:", data)
+        queryClient.setQueryData(["new_solution"], data)
         
         // Also update local state for immediate rendering
-        if (data.debug_analysis) {
-          // Store the debug analysis in its own state variable
-          setDebugAnalysis(data.debug_analysis);
-          // Set code separately for the code section
-          setNewCode(data.code || "// Debug mode - see analysis below");
-          
-          // Process thoughts/analysis points
-          if (data.debug_analysis.includes('\n\n')) {
-            const sections = data.debug_analysis.split('\n\n').filter(Boolean);
-            // Pick first few sections as thoughts
-            setThoughtsData(sections.slice(0, 3));
-          } else if (data.debug_analysis.includes('\n')) {
-            // Try to find bullet points or numbered lists
-            const lines = data.debug_analysis.split('\n');
-            const bulletPoints = lines.filter(line => 
-              line.trim().match(/^[\d*\-•]+\s/) || 
-              line.trim().match(/^[A-Z][\d\.\)\:]/) ||
-              line.includes(':') && line.length < 100
-            );
-            
-            if (bulletPoints.length > 0) {
-              setThoughtsData(bulletPoints.slice(0, 5));
-            } else {
-              setThoughtsData(["Debug analysis based on your screenshots"]);
-            }
-          } else {
-            setThoughtsData(["Debug analysis based on your screenshots"]);
-          }
-        } else {
-          // Fallback to code or default
-          setNewCode(data.code || "// No analysis available");
-          setThoughtsData(data.thoughts || ["Debug analysis based on your screenshots"]);
-          setDebugAnalysis(null);
-        }
-        setTimeComplexityData(data.time_complexity || "N/A - Debug mode");
-        setSpaceComplexityData(data.space_complexity || "N/A - Debug mode");
-        
-        setIsProcessing(false);
+        setDebugSolution(data)
+        setIsProcessing(false)
       }),
       
       window.electronAPI.onDebugStart(() => {
@@ -233,7 +137,7 @@ const Debug: React.FC<DebugProps> = ({
       resizeObserver.disconnect()
       cleanupFunctions.forEach((cleanup) => cleanup())
     }
-  }, [queryClient, setIsProcessing])
+  }, [queryClient, setIsProcessing, refetch, tooltipVisible, tooltipHeight, showToast])
 
   const handleTooltipVisibilityChange = (visible: boolean, height: number) => {
     setTooltipVisible(visible)
@@ -255,6 +159,72 @@ const Debug: React.FC<DebugProps> = ({
       }
     } catch (error) {
       console.error("Error deleting extra screenshot:", error)
+    }
+  }
+
+  // Define the sections with their display titles
+  const sections = [
+    { id: "issues_identified", title: "1. Issues Identified" },
+    { id: "specific_improvements", title: "2. Specific Improvements" },
+    { id: "educational_concepts", title: "3. Educational Concepts" },
+    { id: "optimizations", title: "4. Optimizations" },
+    { id: "explanation", title: "5. Explanation of Changes" },
+    { id: "key_learning", title: "6. Key Learning Points" },
+    { id: "code", title: "7. Corrected Code" },
+  ]
+
+  // Render the markdown content with syntax highlighting for code blocks
+  const renderMarkdown = (content: string) => {
+    return (
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
+        components={{
+          code({node, inline, className, children, ...props}) {
+            const match = /language-(\w+)/.exec(className || '')
+            return !inline && match ? (
+              <SyntaxHighlighter
+                style={dracula}
+                language={match[1]}
+                PreTag="div"
+                {...props}
+              >
+                {String(children).replace(/\n$/, '')}
+              </SyntaxHighlighter>
+            ) : (
+              <code className={className} {...props}>
+                {children}
+              </code>
+            )
+          }
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    )
+  }
+
+  // Get content for the active section
+  const getActiveContent = () => {
+    if (!debugSolution) return "Loading debug solution..."
+
+    switch (activeSection) {
+      case "issues_identified":
+        return debugSolution.issues_identified || "No issues identified"
+      case "specific_improvements":
+        return debugSolution.specific_improvements || "No specific improvements suggested"
+      case "educational_concepts":
+        return debugSolution.educational_concepts || "No educational concepts discussed"
+      case "optimizations":
+        return debugSolution.optimizations || "No optimizations suggested"
+      case "explanation":
+        return debugSolution.explanation || "No explanation provided"
+      case "key_learning":
+        return debugSolution.key_learning || "No key learning points highlighted"
+      case "code":
+        return debugSolution.code || "// No corrected code provided"
+      default:
+        return "Select a section from the sidebar"
     }
   }
 
@@ -285,177 +255,67 @@ const Debug: React.FC<DebugProps> = ({
         setLanguage={setLanguage}
       />
 
-      {/* Main Content */}
+      {/* Main Content - New Layout Structure */}
       <div className="w-full text-sm text-black bg-black/60 rounded-md">
         <div className="rounded-lg overflow-hidden">
-          <div className="px-4 py-3 space-y-4">
-            {/* Thoughts Section */}
-            <ContentSection
-              title="What I Changed"
-              content={
-                thoughtsData && (
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      {thoughtsData.map((thought, index) => (
-                        <div key={index} className="flex items-start gap-2">
-                          <div className="w-1 h-1 rounded-full bg-blue-400/80 mt-2 shrink-0" />
-                          <div>{thought}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )
-              }
-              isLoading={!thoughtsData}
-            />
-
-            {/* Code Section */}
-            <CodeSection
-              title="Original Code"
-              code={newCode}
-              isLoading={!newCode}
-              currentLanguage={currentLanguage}
-            />
-            
-            {/* Debug Analysis Section */}
-            <div className="space-y-2">
-              <h2 className="text-[13px] font-medium text-white tracking-wide">Analysis & Improvements</h2>
-              {!debugAnalysis ? (
-                <div className="space-y-1.5">
-                  <div className="mt-4 flex">
-                    <p className="text-xs bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 bg-clip-text text-transparent animate-pulse">
-                      Loading debug analysis...
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="w-full bg-black/30 rounded-md p-4 text-[13px] leading-[1.4] text-gray-100 whitespace-pre-wrap overflow-auto max-h-[600px]">
-                  {/* Process the debug analysis text by sections and lines */}
-                  {(() => {
-                    // First identify key sections based on common patterns in the debug output
-                    const sections = [];
-                    let currentSection = { title: '', content: [] };
-                    
-                    // Split by possible section headers (### or ##)
-                    const mainSections = debugAnalysis.split(/(?=^#{1,3}\s|^\*\*\*|^\s*[A-Z][\w\s]+\s*$)/m);
-                    
-                    // Filter out empty sections and process each one
-                    mainSections.filter(Boolean).forEach(sectionText => {
-                      // First line might be a header
-                      const lines = sectionText.split('\n');
-                      let title = '';
-                      let startLineIndex = 0;
-                      
-                      // Check if first line is a header
-                      if (lines[0] && (lines[0].startsWith('#') || lines[0].startsWith('**') || 
-                          lines[0].match(/^[A-Z][\w\s]+$/) || lines[0].includes('Issues') || 
-                          lines[0].includes('Improvements') || lines[0].includes('Optimizations'))) {
-                        title = lines[0].replace(/^#+\s*|\*\*/g, '');
-                        startLineIndex = 1;
-                      }
-                      
-                      // Add the section
-                      sections.push({
-                        title,
-                        content: lines.slice(startLineIndex).filter(Boolean)
-                      });
-                    });
-                    
-                    // Render the processed sections
-                    return sections.map((section, sectionIndex) => (
-                      <div key={sectionIndex} className="mb-6">
-                        {section.title && (
-                          <div className="font-bold text-white/90 text-[14px] mb-2 pb-1 border-b border-white/10">
-                            {section.title}
-                          </div>
-                        )}
-                        <div className="pl-1">
-                          {section.content.map((line, lineIndex) => {
-                            // Handle code blocks - detect full code blocks
-                            if (line.trim().startsWith('```')) {
-                              // If we find the start of a code block, collect all lines until the end
-                              if (line.trim() === '```' || line.trim().startsWith('```')) {
-                                // Find end of this code block
-                                const codeBlockEndIndex = section.content.findIndex(
-                                  (l, i) => i > lineIndex && l.trim() === '```'
-                                );
-                                
-                                if (codeBlockEndIndex > lineIndex) {
-                                  // Extract language if specified
-                                  const langMatch = line.trim().match(/```(\w+)/);
-                                  const language = langMatch ? langMatch[1] : '';
-                                  
-                                  // Get the code content
-                                  const codeContent = section.content
-                                    .slice(lineIndex + 1, codeBlockEndIndex)
-                                    .join('\n');
-                                  
-                                  // Skip ahead in our loop
-                                  lineIndex = codeBlockEndIndex;
-                                  
-                                  return (
-                                    <div key={lineIndex} className="font-mono text-xs bg-black/50 p-3 my-2 rounded overflow-x-auto">
-                                      {codeContent}
-                                    </div>
-                                  );
-                                }
-                              }
-                            }
-                            
-                            // Handle bullet points
-                            if (line.trim().match(/^[\-*•]\s/) || line.trim().match(/^\d+\.\s/)) {
-                              return (
-                                <div key={lineIndex} className="flex items-start gap-2 my-1.5">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-blue-400/80 mt-2 shrink-0" />
-                                  <div className="flex-1">
-                                    {line.replace(/^[\-*•]\s|^\d+\.\s/, '')}
-                                  </div>
-                                </div>
-                              );
-                            }
-                            
-                            // Handle inline code
-                            if (line.includes('`')) {
-                              const parts = line.split(/(`[^`]+`)/g);
-                              return (
-                                <div key={lineIndex} className="my-1.5">
-                                  {parts.map((part, partIndex) => {
-                                    if (part.startsWith('`') && part.endsWith('`')) {
-                                      return <span key={partIndex} className="font-mono bg-black/30 px-1 py-0.5 rounded">{part.slice(1, -1)}</span>;
-                                    }
-                                    return <span key={partIndex}>{part}</span>;
-                                  })}
-                                </div>
-                              );
-                            }
-                            
-                            // Handle sub-headers
-                            if (line.trim().match(/^#+\s/) || (line.trim().match(/^[A-Z][\w\s]+:/) && line.length < 60)) {
-                              return (
-                                <div key={lineIndex} className="font-semibold text-white/80 mt-3 mb-1">
-                                  {line.replace(/^#+\s+/, '')}
-                                </div>
-                              );
-                            }
-                            
-                            // Regular text
-                            return <div key={lineIndex} className="my-1.5">{line}</div>;
-                          })}
-                        </div>
-                      </div>
-                    ));
-                  })()} 
-                </div>
-              )}
+          {isProcessing ? (
+            <div className="p-4 text-center">
+              <div className="w-6 h-6 border-2 border-white/20 border-t-white/80 rounded-full animate-spin mx-auto mb-3"></div>
+              <p className="text-white/70 text-sm">Analyzing your code and generating educational feedback...</p>
             </div>
+          ) : debugSolution ? (
+            <div className="flex flex-row">
+              {/* Sidebar with section links */}
+              <SolutionSidebar>
+                {sections.map(section => (
+                  <button
+                    key={section.id}
+                    className={`w-full text-left px-4 py-2 text-sm ${
+                      activeSection === section.id
+                        ? "bg-white/10 text-white font-medium"
+                        : "text-white/70 hover:bg-white/5 hover:text-white/90"
+                    }`}
+                    onClick={() => setActiveSection(section.id)}
+                  >
+                    {section.title}
+                  </button>
+                ))}
+              </SolutionSidebar>
 
-            {/* Complexity Section */}
-            <ComplexitySection
-              timeComplexity={timeComplexityData}
-              spaceComplexity={spaceComplexityData}
-              isLoading={!timeComplexityData || !spaceComplexityData}
-            />
-          </div>
+              {/* Main content area */}
+              <SolutionContent>
+                <SolutionSection
+                  title={sections.find(s => s.id === activeSection)?.title || ""}
+                >
+                  {activeSection === "code" ? (
+                    <SyntaxHighlighter
+                      showLineNumbers
+                      language={currentLanguage === "golang" ? "go" : currentLanguage}
+                      style={dracula}
+                      customStyle={{
+                        maxWidth: "100%",
+                        margin: 0,
+                        padding: "1rem",
+                        backgroundColor: "rgba(22, 27, 34, 0.5)",
+                        borderRadius: "4px"
+                      }}
+                      wrapLongLines={true}
+                    >
+                      {getActiveContent()}
+                    </SyntaxHighlighter>
+                  ) : (
+                    <div className="prose prose-invert prose-sm max-w-none">
+                      {renderMarkdown(getActiveContent())}
+                    </div>
+                  )}
+                </SolutionSection>
+              </SolutionContent>
+            </div>
+          ) : (
+            <div className="p-4 text-center">
+              <p className="text-white/70 text-sm">No debug solution available yet. Take screenshots of your code issues and press the Debug button.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

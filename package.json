@@ -1,6 +1,6 @@
 {
-  "name": "interview-coder-v1",
-  "version": "1.0.19",
+  "name": "leetcode-helper",
+  "version": "1.0.0",
   "main": "./dist-electron/main.js",
   "scripts": {
     "clean": "npx rimraf dist dist-electron",
@@ -15,8 +15,8 @@
     "package-win": "npm run build && electron-builder build --win"
   },
   "build": {
-    "appId": "com.chunginlee.interviewcoder",
-    "productName": "Interview Coder",
+    "appId": "com.leetcode.helper",
+    "productName": "LeetCode Helper",
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
@@ -31,7 +31,7 @@
     "compression": "maximum",
     "generateUpdatesFilesForAllChannels": true,
     "mac": {
-      "category": "public.app-category.developer-tools",
+      "category": "public.app-category.education",
       "target": [
         {
           "target": "dmg",
@@ -48,7 +48,7 @@
           ]
         }
       ],
-      "artifactName": "Interview-Coder-${arch}.${ext}",
+      "artifactName": "LeetCode-Helper-${arch}.${ext}",
       "icon": "assets/icons/mac/icon.icns",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
@@ -57,9 +57,9 @@
       "identity": "Developer ID Application",
       "notarize": true,
       "protocols": {
-        "name": "interview-coder-protocol",
+        "name": "leetcode-helper-protocol",
         "schemes": [
-          "interview-coder"
+          "leetcode-helper"
         ]
       }
     },
@@ -70,9 +70,9 @@
       "icon": "assets/icons/win/icon.ico",
       "artifactName": "${productName}-Windows-${version}.${ext}",
       "protocols": {
-        "name": "interview-coder-protocol",
+        "name": "leetcode-helper-protocol",
         "schemes": [
-          "interview-coder"
+          "leetcode-helper"
         ]
       }
     },
@@ -83,17 +83,17 @@
       "icon": "assets/icons/png/icon-256x256.png",
       "artifactName": "${productName}-Linux-${version}.${ext}",
       "protocols": {
-        "name": "interview-coder-protocol",
+        "name": "leetcode-helper-protocol",
         "schemes": [
-          "interview-coder"
+          "leetcode-helper"
         ]
       }
     },
     "publish": [
       {
         "provider": "github",
-        "owner": "ibttf",
-        "repo": "interview-coder",
+        "owner": "purelyricky",
+        "repo": "leetcode-helper",
         "private": false,
         "releaseType": "release"
       }
@@ -112,15 +112,18 @@
     }
   },
   "keywords": [
-    "interview",
-    "coding",
-    "interview prep",
-    "technical interview",
-    "tool"
+    "leetcode",
+    "algorithms",
+    "education",
+    "learning",
+    "data structures",
+    "problem solving",
+    "coding practice",
+    "programming tutorial"
   ],
-  "author": "Interview Coder Contributors",
-  "license": "AGPL-3.0-or-later",
-  "description": "An invisible desktop application to help you pass your technical interviews.",
+  "author": "LeetCode Helper Team",
+  "license": "MIT",
+  "description": "An educational desktop application to help you learn and understand algorithms through guided problem-solving.",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@electron/notarize": "^2.3.0",
@@ -130,7 +133,6 @@
     "@radix-ui/react-label": "^2.1.0",
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-toast": "^1.2.2",
-    "@supabase/supabase-js": "^2.49.4",
     "@tanstack/react-query": "^5.64.0",
     "axios": "^1.7.7",
     "class-variance-authority": "^0.7.1",
@@ -140,14 +142,19 @@
     "electron-log": "^5.2.4",
     "electron-store": "^10.0.0",
     "electron-updater": "^6.3.9",
+    "firebase": "^10.10.0",
     "form-data": "^4.0.1",
     "lucide-react": "^0.460.0",
     "openai": "^4.28.4",
     "react": "^18.2.0",
     "react-code-blocks": "^0.1.6",
     "react-dom": "^18.2.0",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^6.28.1",
     "react-syntax-highlighter": "^15.6.1",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
     "screenshot-desktop": "^1.15.0",
     "tailwind-merge": "^2.5.5",
     "uuid": "^11.0.3"

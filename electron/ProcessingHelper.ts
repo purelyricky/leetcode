@@ -1,4 +1,3 @@
-// ProcessingHelper.ts
 import fs from "node:fs"
 import path from "node:path"
 import { ScreenshotHelper } from "./ScreenshotHelper"
@@ -31,6 +30,7 @@ interface GeminiResponse {
     finishReason: string;
   }>;
 }
+
 interface AnthropicMessage {
   role: 'user' | 'assistant';
   content: Array<{
@@ -43,6 +43,25 @@ interface AnthropicMessage {
     };
   }>;
 }
+
+// Interface for our structured educational solution format
+interface EducationalSolution {
+  problem_restatement: string;
+  inputs_outputs_constraints: string;
+  edge_cases: string;
+  pattern_recognition: string;
+  approaches: string;
+  pseudocode: string;
+  code: string;
+  complexity: {
+    time: string;
+    space: string;
+  };
+  walkthrough: string;
+  visual_aid: string;
+  further_practice: string;
+}
+
 export class ProcessingHelper {
   private deps: IProcessingHelperDeps
   private screenshotHelper: ScreenshotHelper
@@ -477,14 +496,14 @@ export class ProcessingHelper {
         const messages = [
           {
             role: "system" as const, 
-            content: "You are a coding challenge interpreter. Analyze the screenshot of the coding problem and extract all relevant information. Return the information in JSON format with these fields: problem_statement, constraints, example_input, example_output. Just return the structured JSON without any other text."
+            content: "You are an expert DSA tutor analyzing coding problems. Extract all relevant information from the screenshot to understand the problem completely. Return the information in JSON format with these fields: problem_statement, constraints, example_input, example_output. Just return the structured JSON without any other text."
           },
           {
             role: "user" as const,
             content: [
               {
                 type: "text" as const, 
-                text: `Extract the coding problem details from these screenshots. Return in JSON format. Preferred coding language we gonna use for this problem is ${language}.`
+                text: `Extract the coding problem details from these screenshots. Return in JSON format. Preferred coding language for this problem is ${language}.`
               },
               ...imageDataList.map(data => ({
                 type: "image_url" as const,
@@ -531,7 +550,7 @@ export class ProcessingHelper {
               role: "user",
               parts: [
                 {
-                  text: `You are a coding challenge interpreter. Analyze the screenshots of the coding problem and extract all relevant information. Return the information in JSON format with these fields: problem_statement, constraints, example_input, example_output. Just return the structured JSON without any other text. Preferred coding language we gonna use for this problem is ${language}.`
+                  text: `You are an expert DSA tutor analyzing coding problems. Extract all relevant information from the screenshot to understand the problem completely. Return the information in JSON format with these fields: problem_statement, constraints, example_input, example_output. Just return the structured JSON without any other text. Preferred coding language for this problem is ${language}.`
                 },
                 ...imageDataList.map(data => ({
                   inlineData: {
@@ -589,7 +608,7 @@ export class ProcessingHelper {
               content: [
                 {
                   type: "text" as const,
-                  text: `Extract the coding problem details from these screenshots. Return in JSON format with these fields: problem_statement, constraints, example_input, example_output. Preferred coding language is ${language}.`
+                  text: `You are an expert DSA tutor analyzing coding problems. Extract all relevant information from the screenshot to understand the problem completely. Return the information in JSON format with these fields: problem_statement, constraints, example_input, example_output. Just return the structured JSON without any other text. Preferred coding language is ${language}.`
                 },
                 ...imageDataList.map(data => ({
                   type: "image" as const,
@@ -639,7 +658,7 @@ export class ProcessingHelper {
       // Update the user on progress
       if (mainWindow) {
         mainWindow.webContents.send("processing-status", {
-          message: "Problem analyzed successfully. Preparing to generate solution...",
+          message: "Problem analyzed successfully. Preparing educational solution...",
           progress: 40
         });
       }
@@ -654,15 +673,15 @@ export class ProcessingHelper {
           problemInfo
         );
 
-        // Generate solutions after successful extraction
-        const solutionsResult = await this.generateSolutionsHelper(signal);
+        // Generate educational solution after successful extraction
+        const solutionsResult = await this.generateEducationalSolutionHelper(signal);
         if (solutionsResult.success) {
           // Clear any existing extra screenshots before transitioning to solutions view
           this.screenshotHelper.clearExtraScreenshotQueue();
           
           // Final progress update
           mainWindow.webContents.send("processing-status", {
-            message: "Solution generated successfully",
+            message: "Educational solution generated successfully",
             progress: 100
           });
           
@@ -714,7 +733,7 @@ export class ProcessingHelper {
     }
   }
 
-  private async generateSolutionsHelper(signal: AbortSignal) {
+  private async generateEducationalSolutionHelper(signal: AbortSignal) {
     try {
       const problemInfo = this.deps.getProblemInfo();
       const language = await this.getLanguage();
@@ -728,16 +747,16 @@ export class ProcessingHelper {
       // Update progress status
       if (mainWindow) {
         mainWindow.webContents.send("processing-status", {
-          message: "Creating optimal solution with detailed explanations...",
+          message: "Creating comprehensive educational solution...",
           progress: 60
         });
       }
 
-      // Create prompt for solution generation
+      // Create prompt for educational solution generation
       const promptText = `
-Generate a detailed solution for the following coding problem:
+You are an expert DSA tutor helping a student learn how to approach and solve algorithm problems. I'll provide a problem, and I need you to break down your solution into the following 11 sections. Each section should be comprehensive and educational.
 
-PROBLEM STATEMENT:
+PROBLEM:
 ${problemInfo.problem_statement}
 
 CONSTRAINTS:
@@ -751,18 +770,50 @@ ${problemInfo.example_output || "No example output provided."}
 
 LANGUAGE: ${language}
 
-I need the response in the following format:
-1. Code: A clean, optimized implementation in ${language}
-2. Your Thoughts: A list of key insights and reasoning behind your approach
-3. Time complexity: O(X) with a detailed explanation (at least 2 sentences)
-4. Space complexity: O(X) with a detailed explanation (at least 2 sentences)
+Please structure your response with these exact 11 sections, with each having a clear heading and detailed content:
 
-For complexity explanations, please be thorough. For example: "Time complexity: O(n) because we iterate through the array only once. This is optimal as we need to examine each element at least once to find the solution." or "Space complexity: O(n) because in the worst case, we store all elements in the hashmap. The additional space scales linearly with the input size."
+## 1. Problem Restatement
+Restate the problem in your own words as clearly and concisely as possible.
 
-Your solution should be efficient, well-commented, and handle edge cases.
+## 2. Inputs, Outputs & Constraints Extraction
+List and explain:
+1. Input parameters (types & ranges)
+2. Expected output (type & format)
+3. Problem constraints (max N, time/memory hints)
+
+## 3. Edge-Case Enumeration
+Identify all non-trivial edge and corner cases that should be tested. For each case, explain why it's important to test.
+
+## 4. Pattern Recognition
+Identify which common DSA pattern(s) this problem belongs to (e.g., two pointers, sliding window, BFS/DFS, dynamic programming, etc.) and explain why this pattern applies.
+
+## 5. Brute-Force & Optimized Approaches
+First describe a simple brute-force solution (even if inefficient). Then outline more optimized solutions, explaining the key insights that lead to optimization.
+
+## 6. Step-By-Step Pseudocode
+Provide clear, language-agnostic pseudocode for the best optimized approach. Number each step or use proper indentation to show structure.
+
+## 7. Sample Code
+Translate the pseudocode into clean, well-commented ${language} code with descriptive variable names.
+
+## 8. Complexity Analysis
+Analyze both time and space complexity of the final solution with detailed explanations. Format as:
+- Time Complexity: O(X) - explanation
+- Space Complexity: O(Y) - explanation
+
+## 9. Walk-Through on Example
+Choose a non-trivial example and walk through the solution step by step, showing how variables change.
+
+## 10. Visual Aid
+Provide a visual representation of key data structures or algorithm steps using markdown. If appropriate, include a diagram using mermaid or ASCII art.
+
+## 11. Further Practice & Resources
+Suggest 2-3 similar problems that would reinforce understanding of this pattern, with brief explanations of how they relate.
+
+Make your explanations thorough but accessible - imagine you're teaching a student who is actively learning DSA. Use markdown formatting to make your explanation clear and readable, including code blocks, lists, and emphasis where appropriate.
 `;
 
-      let responseContent;
+      let educationalResponse: string;
       
       if (config.apiProvider === "openai") {
         // OpenAI processing
@@ -777,14 +828,14 @@ Your solution should be efficient, well-commented, and handle edge cases.
         const solutionResponse = await this.openaiClient.chat.completions.create({
           model: config.solutionModel || "gpt-4o",
           messages: [
-            { role: "system", content: "You are an expert coding interview assistant. Provide clear, optimal solutions with detailed explanations." },
+            { role: "system", content: "You are an expert DSA tutor who explains solutions clearly and comprehensively, helping students learn rather than just giving answers." },
             { role: "user", content: promptText }
           ],
           max_tokens: 4000,
           temperature: 0.2
         });
 
-        responseContent = solutionResponse.choices[0].message.content;
+        educationalResponse = solutionResponse.choices[0].message.content;
       } else if (config.apiProvider === "gemini")  {
         // Gemini processing
         if (!this.geminiApiKey) {
@@ -801,7 +852,7 @@ Your solution should be efficient, well-commented, and handle edge cases.
               role: "user",
               parts: [
                 {
-                  text: `You are an expert coding interview assistant. Provide a clear, optimal solution with detailed explanations for this problem:\n\n${promptText}`
+                  text: `You are an expert DSA tutor who explains solutions clearly and comprehensively, helping students learn rather than just giving answers. ${promptText}`
                 }
               ]
             }
@@ -826,7 +877,7 @@ Your solution should be efficient, well-commented, and handle edge cases.
             throw new Error("Empty response from Gemini API");
           }
           
-          responseContent = responseData.candidates[0].content.parts[0].text;
+          educationalResponse = responseData.candidates[0].content.parts[0].text;
         } catch (error) {
           console.error("Error using Gemini API for solution:", error);
           return {
@@ -850,7 +901,7 @@ Your solution should be efficient, well-commented, and handle edge cases.
               content: [
                 {
                   type: "text" as const,
-                  text: `You are an expert coding interview assistant. Provide a clear, optimal solution with detailed explanations for this problem:\n\n${promptText}`
+                  text: `You are an expert DSA tutor who explains solutions clearly and comprehensively, helping students learn rather than just giving answers. ${promptText}`
                 }
               ]
             }
@@ -864,7 +915,7 @@ Your solution should be efficient, well-commented, and handle edge cases.
             temperature: 0.2
           });
 
-          responseContent = (response.content[0] as { type: 'text', text: string }).text;
+          educationalResponse = (response.content[0] as { type: 'text', text: string }).text;
         } catch (error: any) {
           console.error("Error using Anthropic API for solution:", error);
 
@@ -888,72 +939,72 @@ Your solution should be efficient, well-commented, and handle edge cases.
         }
       }
       
-      // Extract parts from the response
-      const codeMatch = responseContent.match(/```(?:\w+)?\s*([\s\S]*?)```/);
-      const code = codeMatch ? codeMatch[1].trim() : responseContent;
+      // Extract sections using regex
+      // We're looking for the 11 sections with markdown headers like ## 1. Problem Restatement
+      const sections: { [key: string]: string } = {};
       
-      // Extract thoughts, looking for bullet points or numbered lists
-      const thoughtsRegex = /(?:Thoughts:|Key Insights:|Reasoning:|Approach:)([\s\S]*?)(?:Time complexity:|$)/i;
-      const thoughtsMatch = responseContent.match(thoughtsRegex);
-      let thoughts: string[] = [];
+      const sectionRegexes = [
+        { key: 'problem_restatement', regex: /## 1\. Problem Restatement\s+([\s\S]*?)(?=## 2\.|$)/i },
+        { key: 'inputs_outputs_constraints', regex: /## 2\. Inputs, Outputs & Constraints Extraction\s+([\s\S]*?)(?=## 3\.|$)/i },
+        { key: 'edge_cases', regex: /## 3\. Edge-Case Enumeration\s+([\s\S]*?)(?=## 4\.|$)/i },
+        { key: 'pattern_recognition', regex: /## 4\. Pattern Recognition\s+([\s\S]*?)(?=## 5\.|$)/i },
+        { key: 'approaches', regex: /## 5\. Brute-Force & Optimized Approaches\s+([\s\S]*?)(?=## 6\.|$)/i },
+        { key: 'pseudocode', regex: /## 6\. Step-By-Step Pseudocode\s+([\s\S]*?)(?=## 7\.|$)/i },
+        { key: 'code', regex: /## 7\. Sample Code\s+([\s\S]*?)(?=## 8\.|$)/i },
+        { key: 'complexity', regex: /## 8\. Complexity Analysis\s+([\s\S]*?)(?=## 9\.|$)/i },
+        { key: 'walkthrough', regex: /## 9\. Walk-Through on Example\s+([\s\S]*?)(?=## 10\.|$)/i },
+        { key: 'visual_aid', regex: /## 10\. Visual Aid\s+([\s\S]*?)(?=## 11\.|$)/i },
+        { key: 'further_practice', regex: /## 11\. Further Practice & Resources\s+([\s\S]*?)(?=$)/i }
+      ];
       
-      if (thoughtsMatch && thoughtsMatch[1]) {
-        // Extract bullet points or numbered items
-        const bulletPoints = thoughtsMatch[1].match(/(?:^|\n)\s*(?:[-*•]|\d+\.)\s*(.*)/g);
-        if (bulletPoints) {
-          thoughts = bulletPoints.map(point => 
-            point.replace(/^\s*(?:[-*•]|\d+\.)\s*/, '').trim()
-          ).filter(Boolean);
-        } else {
-          // If no bullet points found, split by newlines and filter empty lines
-          thoughts = thoughtsMatch[1].split('\n')
-            .map((line) => line.trim())
-            .filter(Boolean);
-        }
-      }
+      // Extract each section
+      sectionRegexes.forEach(({ key, regex }) => {
+        const match = educationalResponse.match(regex);
+        sections[key] = match ? match[1].trim() : '';
+      });
       
-      // Extract complexity information
-      const timeComplexityPattern = /Time complexity:?\s*([^\n]+(?:\n[^\n]+)*?)(?=\n\s*(?:Space complexity|$))/i;
-      const spaceComplexityPattern = /Space complexity:?\s*([^\n]+(?:\n[^\n]+)*?)(?=\n\s*(?:[A-Z]|$))/i;
+      // Extract code from the code section
+      const codeMatch = sections.code.match(/```[a-z]*\s*([\s\S]*?)```/);
+      const code = codeMatch ? codeMatch[1].trim() : sections.code;
       
-      let timeComplexity = "O(n) - Linear time complexity because we only iterate through the array once. Each element is processed exactly one time, and the hashmap lookups are O(1) operations.";
-      let spaceComplexity = "O(n) - Linear space complexity because we store elements in the hashmap. In the worst case, we might need to store all elements before finding the solution pair.";
+      // Extract time and space complexity
+      let timeComplexity = "O(n)";
+      let spaceComplexity = "O(n)";
       
-      const timeMatch = responseContent.match(timeComplexityPattern);
-      if (timeMatch && timeMatch[1]) {
+      const timeMatch = sections.complexity.match(/Time Complexity:\s*([^\n]+)/i);
+      if (timeMatch) {
         timeComplexity = timeMatch[1].trim();
-        if (!timeComplexity.match(/O\([^)]+\)/i)) {
-          timeComplexity = `O(n) - ${timeComplexity}`;
-        } else if (!timeComplexity.includes('-') && !timeComplexity.includes('because')) {
-          const notationMatch = timeComplexity.match(/O\([^)]+\)/i);
-          if (notationMatch) {
-            const notation = notationMatch[0];
-            const rest = timeComplexity.replace(notation, '').trim();
-            timeComplexity = `${notation} - ${rest}`;
-          }
-        }
       }
       
-      const spaceMatch = responseContent.match(spaceComplexityPattern);
-      if (spaceMatch && spaceMatch[1]) {
+      const spaceMatch = sections.complexity.match(/Space Complexity:\s*([^\n]+)/i);
+      if (spaceMatch) {
         spaceComplexity = spaceMatch[1].trim();
-        if (!spaceComplexity.match(/O\([^)]+\)/i)) {
-          spaceComplexity = `O(n) - ${spaceComplexity}`;
-        } else if (!spaceComplexity.includes('-') && !spaceComplexity.includes('because')) {
-          const notationMatch = spaceComplexity.match(/O\([^)]+\)/i);
-          if (notationMatch) {
-            const notation = notationMatch[0];
-            const rest = spaceComplexity.replace(notation, '').trim();
-            spaceComplexity = `${notation} - ${rest}`;
-          }
-        }
       }
+      
+      // Format sections for better readability
+      // If a section is missing, provide a default placeholder
+      Object.keys(sections).forEach(key => {
+        if (!sections[key]) {
+          sections[key] = `No information provided for ${key.replace(/_/g, ' ')}.`;
+        }
+      });
 
-      const formattedResponse = {
+      // Create the final structured response
+      const formattedResponse: EducationalSolution = {
+        problem_restatement: sections.problem_restatement,
+        inputs_outputs_constraints: sections.inputs_outputs_constraints,
+        edge_cases: sections.edge_cases,
+        pattern_recognition: sections.pattern_recognition,
+        approaches: sections.approaches,
+        pseudocode: sections.pseudocode,
         code: code,
-        thoughts: thoughts.length > 0 ? thoughts : ["Solution approach based on efficiency and readability"],
-        time_complexity: timeComplexity,
-        space_complexity: spaceComplexity
+        complexity: {
+          time: timeComplexity,
+          space: spaceComplexity
+        },
+        walkthrough: sections.walkthrough,
+        visual_aid: sections.visual_aid,
+        further_practice: sections.further_practice
       };
 
       return { success: true, data: formattedResponse };
@@ -1007,7 +1058,7 @@ Your solution should be efficient, well-commented, and handle edge cases.
       // Prepare the images for the API call
       const imageDataList = screenshots.map(screenshot => screenshot.data);
       
-      let debugContent;
+      let debugContent: string;
       
       if (config.apiProvider === "openai") {
         if (!this.openaiClient) {
@@ -1020,23 +1071,26 @@ Your solution should be efficient, well-commented, and handle edge cases.
         const messages = [
           {
             role: "system" as const, 
-            content: `You are a coding interview assistant helping debug and improve solutions. Analyze these screenshots which include either error messages, incorrect outputs, or test cases, and provide detailed debugging help.
+            content: `You are a coding interview tutor helping debug and improve solutions. Analyze these screenshots which include either error messages, incorrect outputs, or test cases, and provide detailed educational debugging help.
 
-Your response MUST follow this exact structure with these section headers (use ### for headers):
-### Issues Identified
+Your response MUST follow this exact structure with these section headers (use markdown ## for headers):
+## Issues Identified
 - List each issue as a bullet point with clear explanation
 
-### Specific Improvements and Corrections
+## Specific Improvements and Corrections
 - List specific code changes needed as bullet points
 
-### Optimizations
+## Educational Concepts
+- Explain the underlying DSA or programming concepts that relate to these issues
+
+## Optimizations
 - List any performance optimizations if applicable
 
-### Explanation of Changes Needed
-Here provide a clear explanation of why the changes are needed
+## Explanation of Changes Needed
+Here provide a clear explanation of why the changes are needed and what lessons can be learned
 
-### Key Points
-- Summary bullet points of the most important takeaways
+## Key Learning Points
+- Summary bullet points of the most important takeaways for the student
 
 If you include code examples, use proper markdown code blocks with language specification (e.g. \`\`\`java).`
           },
@@ -1045,11 +1099,12 @@ If you include code examples, use proper markdown code blocks with language spec
             content: [
               {
                 type: "text" as const, 
-                text: `I'm solving this coding problem: "${problemInfo.problem_statement}" in ${language}. I need help with debugging or improving my solution. Here are screenshots of my code, the errors or test cases. Please provide a detailed analysis with:
+                text: `I'm solving this coding problem: "${problemInfo.problem_statement}" in ${language}. I need help understanding what's wrong with my solution and how to improve it. Here are screenshots of my code, the errors or test cases. Please provide educational guidance that helps me learn:
 1. What issues you found in my code
-2. Specific improvements and corrections
-3. Any optimizations that would make the solution better
-4. A clear explanation of the changes needed` 
+2. The underlying DSA concepts related to these issues
+3. Specific improvements and corrections
+4. Any optimizations that would make the solution better
+5. A clear explanation that helps me learn from these mistakes` 
               },
               ...imageDataList.map(data => ({
                 type: "image_url" as const,
@@ -1061,7 +1116,7 @@ If you include code examples, use proper markdown code blocks with language spec
 
         if (mainWindow) {
           mainWindow.webContents.send("processing-status", {
-            message: "Analyzing code and generating debug feedback...",
+            message: "Analyzing code and generating educational feedback...",
             progress: 60
           });
         }
@@ -1084,25 +1139,28 @@ If you include code examples, use proper markdown code blocks with language spec
         
         try {
           const debugPrompt = `
-You are a coding interview assistant helping debug and improve solutions. Analyze these screenshots which include either error messages, incorrect outputs, or test cases, and provide detailed debugging help.
+You are a coding interview tutor helping debug and improve solutions. Analyze these screenshots which include either error messages, incorrect outputs, or test cases, and provide detailed educational debugging help.
 
-I'm solving this coding problem: "${problemInfo.problem_statement}" in ${language}. I need help with debugging or improving my solution.
+I'm solving this coding problem: "${problemInfo.problem_statement}" in ${language}. I need help understanding what's wrong with my solution and how to improve it.
 
 YOUR RESPONSE MUST FOLLOW THIS EXACT STRUCTURE WITH THESE SECTION HEADERS:
-### Issues Identified
+## Issues Identified
 - List each issue as a bullet point with clear explanation
 
-### Specific Improvements and Corrections
+## Specific Improvements and Corrections
 - List specific code changes needed as bullet points
 
-### Optimizations
+## Educational Concepts
+- Explain the underlying DSA or programming concepts that relate to these issues
+
+## Optimizations
 - List any performance optimizations if applicable
 
-### Explanation of Changes Needed
-Here provide a clear explanation of why the changes are needed
+## Explanation of Changes Needed
+Here provide a clear explanation of why the changes are needed and what lessons can be learned
 
-### Key Points
-- Summary bullet points of the most important takeaways
+## Key Learning Points
+- Summary bullet points of the most important takeaways for the student
 
 If you include code examples, use proper markdown code blocks with language specification (e.g. \`\`\`java).
 `;
@@ -1124,7 +1182,7 @@ If you include code examples, use proper markdown code blocks with language spec
 
           if (mainWindow) {
             mainWindow.webContents.send("processing-status", {
-              message: "Analyzing code and generating debug feedback with Gemini...",
+              message: "Analyzing code and generating educational feedback with Gemini...",
               progress: 60
             });
           }
@@ -1165,25 +1223,28 @@ If you include code examples, use proper markdown code blocks with language spec
         
         try {
           const debugPrompt = `
-You are a coding interview assistant helping debug and improve solutions. Analyze these screenshots which include either error messages, incorrect outputs, or test cases, and provide detailed debugging help.
+You are a coding interview tutor helping debug and improve solutions. Analyze these screenshots which include either error messages, incorrect outputs, or test cases, and provide detailed educational debugging help.
 
-I'm solving this coding problem: "${problemInfo.problem_statement}" in ${language}. I need help with debugging or improving my solution.
+I'm solving this coding problem: "${problemInfo.problem_statement}" in ${language}. I need help understanding what's wrong with my solution and how to improve it.
 
 YOUR RESPONSE MUST FOLLOW THIS EXACT STRUCTURE WITH THESE SECTION HEADERS:
-### Issues Identified
+## Issues Identified
 - List each issue as a bullet point with clear explanation
 
-### Specific Improvements and Corrections
+## Specific Improvements and Corrections
 - List specific code changes needed as bullet points
 
-### Optimizations
+## Educational Concepts
+- Explain the underlying DSA or programming concepts that relate to these issues
+
+## Optimizations
 - List any performance optimizations if applicable
 
-### Explanation of Changes Needed
-Here provide a clear explanation of why the changes are needed
+## Explanation of Changes Needed
+Here provide a clear explanation of why the changes are needed and what lessons can be learned
 
-### Key Points
-- Summary bullet points of the most important takeaways
+## Key Learning Points
+- Summary bullet points of the most important takeaways for the student
 
 If you include code examples, use proper markdown code blocks with language specification.
 `;
@@ -1210,7 +1271,7 @@ If you include code examples, use proper markdown code blocks with language spec
 
           if (mainWindow) {
             mainWindow.webContents.send("processing-status", {
-              message: "Analyzing code and generating debug feedback with Claude...",
+              message: "Analyzing code and generating educational feedback with Claude...",
               progress: 60
             });
           }
@@ -1254,36 +1315,45 @@ If you include code examples, use proper markdown code blocks with language spec
         });
       }
 
-      let extractedCode = "// Debug mode - see analysis below";
-      const codeMatch = debugContent.match(/```(?:[a-zA-Z]+)?([\s\S]*?)```/);
+      // Extract sections using regex
+      // Similar to the educational solution extraction, but with different sections
+      const sections: { [key: string]: string } = {};
+      
+      const sectionRegexes = [
+        { key: 'issues_identified', regex: /## Issues Identified\s+([\s\S]*?)(?=## Specific|$)/i },
+        { key: 'specific_improvements', regex: /## Specific Improvements and Corrections\s+([\s\S]*?)(?=## Educational|$)/i },
+        { key: 'educational_concepts', regex: /## Educational Concepts\s+([\s\S]*?)(?=## Optimizations|$)/i },
+        { key: 'optimizations', regex: /## Optimizations\s+([\s\S]*?)(?=## Explanation|$)/i },
+        { key: 'explanation', regex: /## Explanation of Changes Needed\s+([\s\S]*?)(?=## Key Learning|$)/i },
+        { key: 'key_learning', regex: /## Key Learning Points\s+([\s\S]*?)(?=$)/i }
+      ];
+      
+      // Extract each section
+      sectionRegexes.forEach(({ key, regex }) => {
+        const match = debugContent.match(regex);
+        sections[key] = match ? match[1].trim() : '';
+      });
+      
+      // Extract code if present
+      let extractedCode = "";
+      const codeMatch = debugContent.match(/```(?:[a-z]+)?([\s\S]*?)```/);
       if (codeMatch && codeMatch[1]) {
         extractedCode = codeMatch[1].trim();
       }
 
-      let formattedDebugContent = debugContent;
-      
-      if (!debugContent.includes('# ') && !debugContent.includes('## ')) {
-        formattedDebugContent = debugContent
-          .replace(/issues identified|problems found|bugs found/i, '## Issues Identified')
-          .replace(/code improvements|improvements|suggested changes/i, '## Code Improvements')
-          .replace(/optimizations|performance improvements/i, '## Optimizations')
-          .replace(/explanation|detailed analysis/i, '## Explanation');
-      }
-
-      const bulletPoints = formattedDebugContent.match(/(?:^|\n)[ ]*(?:[-*•]|\d+\.)[ ]+([^\n]+)/g);
-      const thoughts = bulletPoints 
-        ? bulletPoints.map(point => point.replace(/^[ ]*(?:[-*•]|\d+\.)[ ]+/, '').trim()).slice(0, 5)
-        : ["Debug analysis based on your screenshots"];
-      
-      const response = {
-        code: extractedCode,
-        debug_analysis: formattedDebugContent,
-        thoughts: thoughts,
-        time_complexity: "N/A - Debug mode",
-        space_complexity: "N/A - Debug mode"
+      // Construct a structured debug response
+      const formattedDebugResponse = {
+        issues_identified: sections.issues_identified || "No specific issues identified.",
+        specific_improvements: sections.specific_improvements || "No specific improvements suggested.",
+        educational_concepts: sections.educational_concepts || "No educational concepts discussed.",
+        optimizations: sections.optimizations || "No optimizations suggested.",
+        explanation: sections.explanation || "No detailed explanation provided.",
+        key_learning: sections.key_learning || "No key learning points highlighted.",
+        code: extractedCode || "// No corrected code provided",
+        debug_analysis: debugContent, // Keep the full response for reference
       };
 
-      return { success: true, data: response };
+      return { success: true, data: formattedDebugResponse };
     } catch (error: any) {
       console.error("Debug processing error:", error);
       return { success: false, error: error.message || "Failed to process debug request" };
