@@ -236,7 +236,35 @@ const electronAPI = {
       ipcRenderer.removeListener("delete-last-screenshot", subscription)
     }
   },
-  deleteLastScreenshot: () => ipcRenderer.invoke("delete-last-screenshot")
+  deleteLastScreenshot: () => ipcRenderer.invoke("delete-last-screenshot"),
+
+  toggleClickThrough: async () => {
+    console.log("toggleClickThrough called from preload")
+    try {
+      const result = await ipcRenderer.invoke("toggle-click-through")
+      console.log("toggle-click-through result:", result)
+      return result
+    } catch (error) {
+      console.error("Error in toggleClickThrough:", error)
+      throw error
+    }
+  },
+  
+  onClickThroughEnabled: (callback: () => void) => {
+    const subscription = () => callback()
+    ipcRenderer.on("click-through-enabled", subscription)
+    return () => {
+      ipcRenderer.removeListener("click-through-enabled", subscription)
+    }
+  },
+  
+  onClickThroughDisabled: (callback: () => void) => {
+    const subscription = () => callback()
+    ipcRenderer.on("click-through-disabled", subscription)
+    return () => {
+      ipcRenderer.removeListener("click-through-disabled", subscription)
+    }
+  },
 }
 
 // Before exposing the API

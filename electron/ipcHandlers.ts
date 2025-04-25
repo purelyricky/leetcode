@@ -348,4 +348,14 @@ export function initializeIpcHandlers(deps: IIpcHandlerDeps): void {
       return { success: false, error: "Failed to delete last screenshot" }
     }
   })
+
+  ipcMain.handle("toggle-click-through", () => {
+    try {
+      deps.toggleClickThrough()
+      return { success: true }
+    } catch (error) {
+      console.error("Error toggling click-through mode:", error)
+      return { error: "Failed to toggle click-through mode" }
+    }
+  })
 }

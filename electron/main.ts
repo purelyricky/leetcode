@@ -48,7 +48,8 @@ const state = {
     DEBUG_START: "debug-start",
     DEBUG_SUCCESS: "debug-success",
     DEBUG_ERROR: "debug-error"
-  } as const
+  } as const,
+  isClickThroughEnabled: false,  // New state property for click-through mode
 }
 
 // Add interfaces for helper classes
@@ -85,9 +86,11 @@ export interface IShortcutsHelperDeps {
   moveWindowRight: () => void
   moveWindowUp: () => void
   moveWindowDown: () => void
+  toggleClickThrough: () => void
 }
 
 export interface IIpcHandlerDeps {
+  toggleClickThrough: () => void
   getMainWindow: () => BrowserWindow | null
   setWindowDimensions: (width: number, height: number) => void
   getScreenshotQueue: () => string[]
@@ -150,24 +153,25 @@ function initializeHelpers() {
         )
       ),
     moveWindowUp: () => moveWindowVertical((y) => y - state.step),
-    moveWindowDown: () => moveWindowVertical((y) => y + state.step)
+    moveWindowDown: () => moveWindowVertical((y) => y + state.step),
+    toggleClickThrough: () => toggleClickThrough()
   } as IShortcutsHelperDeps)
 }
 
 // Auth callback handler
 
-// Register the interview-coder protocol
+// Register the leetcode helper protocol
 if (process.platform === "darwin") {
-  app.setAsDefaultProtocolClient("interview-coder")
+  app.setAsDefaultProtocolClient("leetcode helper")
 } else {
-  app.setAsDefaultProtocolClient("interview-coder", process.execPath, [
+  app.setAsDefaultProtocolClient("leetcode helper", process.execPath, [
     path.resolve(process.argv[1] || "")
   ])
 }
 
 // Handle the protocol. In this case, we choose to show an Error Box.
 if (process.defaultApp && process.argv.length >= 2) {
-  app.setAsDefaultProtocolClient("interview-coder", process.execPath, [
+  app.setAsDefaultProtocolClient("leetcode helper", process.execPath, [
     path.resolve(process.argv[1])
   ])
 }
@@ -207,7 +211,7 @@ async function createWindow(): Promise<void> {
   state.currentY = 50
 
   const windowSettings: Electron.BrowserWindowConstructorOptions = {
-    width: 960,
+    width: 1000,
     height: 700,
     minWidth: 800,
     minHeight: 660,
@@ -230,7 +234,7 @@ async function createWindow(): Promise<void> {
     opacity: 1.0,  // Start with full opacity
     backgroundColor: "#00000000",
     focusable: true,
-    skipTaskbar: true,
+    skipTaskbar: false,
     type: "panel",
     paintWhenInitiallyHidden: true,
     titleBarStyle: "hidden",
@@ -506,7 +510,7 @@ function loadEnvVariables() {
 async function initializeApp() {
   try {
     // Set custom cache directory to prevent permission issues
-    const appDataPath = path.join(app.getPath('appData'), 'interview-coder-v1')
+    const appDataPath = path.join(app.getPath('appData'), 'leetcodehelper-v1')
     const sessionPath = path.join(appDataPath, 'session')
     const tempPath = path.join(appDataPath, 'temp')
     const cachePath = path.join(appDataPath, 'cache')
@@ -545,19 +549,18 @@ async function initializeApp() {
       toggleMainWindow,
       clearQueues,
       setView,
-      moveWindowLeft: () =>
-        moveWindowHorizontal((x) =>
-          Math.max(-(state.windowSize?.width || 0) / 2, x - state.step)
-        ),
-      moveWindowRight: () =>
-        moveWindowHorizontal((x) =>
-          Math.min(
-            state.screenWidth - (state.windowSize?.width || 0) / 2,
-            x + state.step
-          )
-        ),
+      moveWindowLeft: () => moveWindowHorizontal((x) => Math.max(-(state.windowSize?.width || 0) / 2, x - state.step)
+      ),
+      moveWindowRight: () => moveWindowHorizontal((x) => Math.min(
+        state.screenWidth - (state.windowSize?.width || 0) / 2,
+        x + state.step
+      )
+      ),
       moveWindowUp: () => moveWindowVertical((y) => y - state.step),
-      moveWindowDown: () => moveWindowVertical((y) => y + state.step)
+      moveWindowDown: () => moveWindowVertical((y) => y + state.step),
+      toggleClickThrough: function (): void {
+        throw new Error("Function not implemented.")
+      }
     })
     await createWindow()
     state.shortcutsHelper?.registerGlobalShortcuts()
@@ -708,7 +711,46 @@ export {
   getImagePreview,
   deleteScreenshot,
   setHasDebugged,
-  getHasDebugged
+  getHasDebugged,
+  toggleClickThrough,
 }
 
 app.whenReady().then(initializeApp)
+
+
+function toggleClickThrough(): void {
+  console.log(`Toggling click-through mode. Current state: ${state.isClickThroughEnabled ? 'enabled' : 'disabled'}`);
+
+  if (!state.mainWindow || state.mainWindow.isDestroyed()) return;
+
+  // Toggle the click-through state
+  state.isClickThroughEnabled = !state.isClickThroughEnabled;
+
+  if (state.isClickThroughEnabled) {
+    // Enable click-through mode
+    state.mainWindow.setIgnoreMouseEvents(true, { forward: true });
+
+    // Make the window semi-transparent to indicate click-through mode
+    const currentOpacity = state.mainWindow.getOpacity();
+    state.mainWindow.setOpacity(Math.max(0.3, currentOpacity * 0.5));
+
+    // Still show the window (in case it was hidden)
+    if (!state.isWindowVisible) {
+      state.mainWindow.showInactive();
+      state.isWindowVisible = true;
+    }
+
+    // Add visual indicator for click-through mode if possible
+    state.mainWindow.webContents.send("click-through-enabled");
+  } else {
+    // Disable click-through mode
+    state.mainWindow.setIgnoreMouseEvents(false);
+
+    // Restore opacity
+    const savedOpacity = configHelper.getOpacity();
+    state.mainWindow.setOpacity(savedOpacity);
+
+    // Notify renderer
+    state.mainWindow.webContents.send("click-through-disabled");
+  }
+}

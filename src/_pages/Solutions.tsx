@@ -458,21 +458,48 @@ const Solutions: React.FC<SolutionsProps> = ({
                       title={sections.find(s => s.id === activeSection)?.title || ""}
                     >
                       {activeSection === "code" ? (
-                        <SyntaxHighlighter
-                          showLineNumbers
-                          language={currentLanguage === "golang" ? "go" : currentLanguage}
-                          style={dracula}
-                          customStyle={{
-                            maxWidth: "100%",
-                            margin: 0,
-                            padding: "1rem",
-                            backgroundColor: "rgba(22, 27, 34, 0.5)",
-                            borderRadius: "4px"
-                          }}
-                          wrapLongLines={true}
-                        >
-                          {getActiveContent()}
-                        </SyntaxHighlighter>
+                        <div className="relative">
+                          <button
+                            onClick={() => {
+                              if (solutionData?.code) {
+                                navigator.clipboard.writeText(solutionData.code)
+                                  .then(() => {
+                                    showToast(
+                                      "Copied to clipboard",
+                                      "Try to manually type next time 🙁... It helps🫵",
+                                      "neutral"
+                                    );
+                                  })
+                                  .catch(err => {
+                                    console.error("Failed to copy: ", err);
+                                    showToast("Error", "Failed to copy code", "error");
+                                  });
+                              }
+                            }}
+                            className="absolute top-2 right-2 bg-white/10 hover:bg-white/20 text-white/80 hover:text-white p-1.5 rounded-md z-10 transition-colors"
+                            title="Copy code"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                          </button>
+                          <SyntaxHighlighter
+                            showLineNumbers
+                            language={currentLanguage === "golang" ? "go" : currentLanguage}
+                            style={dracula}
+                            customStyle={{
+                              maxWidth: "100%",
+                              margin: 0,
+                              padding: "1rem",
+                              backgroundColor: "rgba(22, 27, 34, 0.5)",
+                              borderRadius: "4px"
+                            }}
+                            wrapLongLines={true}
+                          >
+                            {getActiveContent()}
+                          </SyntaxHighlighter>
+                        </div>
                       ) : (
                         <div className="prose prose-invert prose-sm max-w-none">
                           {renderMarkdown(getActiveContent())}

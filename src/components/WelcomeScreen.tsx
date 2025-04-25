@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from './ui/button';
+import { Code, KeyRound, MousePointerClick, Keyboard } from 'lucide-react';
 
 interface WelcomeScreenProps {
   onOpenSettings: () => void;
@@ -7,67 +8,63 @@ interface WelcomeScreenProps {
 
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onOpenSettings }) => {
   return (
-    <div className="bg-black min-h-screen flex flex-col items-center justify-center p-6">
-      <div className="max-w-md w-full bg-black border border-white/10 rounded-xl p-6 shadow-lg">
-        <h1 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-          <span>Interview Coder</span>
-          <span className="text-sm font-normal px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded-md">Unlocked Edition</span>
-        </h1>
-        
-        <div className="mb-8">
-          <h2 className="text-lg font-medium text-white mb-3">Welcome to Interview Coder</h2>
-          <p className="text-white/70 text-sm mb-4">
-            This application helps you ace technical interviews by providing AI-powered
-            solutions to coding problems.
-          </p>
-          <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-4">
-            <h3 className="text-white/90 font-medium mb-2">Global Shortcuts</h3>
-            <ul className="space-y-2">
-              <li className="flex justify-between text-sm">
-                <span className="text-white/70">Toggle Visibility</span>
-                <span className="text-white/90">Ctrl+B / Cmd+B</span>
-              </li>
-              <li className="flex justify-between text-sm">
-                <span className="text-white/70">Take Screenshot</span>
-                <span className="text-white/90">Ctrl+H / Cmd+H</span>
-              </li>
-              <li className="flex justify-between text-sm">
-                <span className="text-white/70">Delete Last Screenshot</span>
-                <span className="text-white/90">Ctrl+L / Cmd+L</span>
-              </li>
-              <li className="flex justify-between text-sm">
-                <span className="text-white/70">Process Screenshots</span>
-                <span className="text-white/90">Ctrl+Enter / Cmd+Enter</span>
-              </li>
-              <li className="flex justify-between text-sm">
-                <span className="text-white/70">Reset View</span>
-                <span className="text-white/90">Ctrl+R / Cmd+R</span>
-              </li>
-              <li className="flex justify-between text-sm">
-                <span className="text-white/70">Quit App</span>
-                <span className="text-white/90">Ctrl+Q / Cmd+Q</span>
-              </li>
-            </ul>
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6">
+      <div className="max-w-md w-full bg-[#0A0A0A] border border-amber-500/10 rounded-xl p-6 shadow-lg">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="bg-amber-500 w-10 h-10 rounded-lg flex items-center justify-center">
+            <Code className="w-6 h-6 text-black" />
           </div>
+          <h1 className="text-2xl font-bold text-white">
+            LeetCode Helper
+          </h1>
         </div>
         
-        <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-6">
-          <h3 className="text-white/90 font-medium mb-2">Getting Started</h3>
-          <p className="text-white/70 text-sm mb-3">
-            Before using the application, you need to configure your OpenAI API key.
+        <div className="mb-6">
+          <p className="text-white/70 text-sm mb-5">
+            Configure your API key to start analyzing DSA problems and getting step-by-step explanations.
           </p>
+          
           <Button 
-            className="w-full px-4 py-3 bg-white text-black rounded-xl font-medium hover:bg-white/90 transition-colors flex items-center justify-center gap-2"
             onClick={onOpenSettings}
+            className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-black font-medium rounded-lg transition-all"
           >
-            Open Settings
+            Configure API Settings
           </Button>
         </div>
         
-        <div className="text-white/40 text-xs text-center">
-          Start by taking screenshots of your coding problem (Ctrl+H / Cmd+H)
+        <div className="border-t border-amber-500/10 pt-5 mb-5">
+          <h3 className="text-sm font-medium text-amber-400 mb-3 flex items-center gap-2">
+            <Keyboard className="w-4 h-4" />
+            Key Shortcuts
+          </h3>
+          
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+            <ShortcutItem icon={<KeyRound className="w-3.5 h-3.5" />} action="Toggle Visibility" keys="Ctrl+B" />
+            <ShortcutItem icon={<MousePointerClick className="w-3.5 h-3.5" />} action="Click-Through" keys="Ctrl+T" />
+            <ShortcutItem icon={<Code className="w-3.5 h-3.5" />} action="Capture Screen" keys="Ctrl+H" />
+            <ShortcutItem icon={<Code className="w-3.5 h-3.5" />} action="Analyze" keys="Ctrl+Enter" />
+          </div>
+        </div>
+        
+        <div className="bg-black/40 rounded-lg p-3 text-xs text-white/60">
+          LeetCode Helper will analyze problems and provide educational step-by-step solutions to help you learn algorithms and data structures.
         </div>
       </div>
     </div>
   );
 };
+
+// Helper component for shortcuts
+const ShortcutItem = ({ icon, action, keys }: { icon: React.ReactNode, action: string, keys: string }) => (
+  <div className="flex items-center gap-1.5">
+    <div className="text-amber-500">
+      {icon}
+    </div>
+    <div>
+      <div className="text-xs text-white/80">{action}</div>
+      <div className="text-[10px] text-amber-500/80 font-mono">{keys}</div>
+    </div>
+  </div>
+);
+
+export default WelcomeScreen;

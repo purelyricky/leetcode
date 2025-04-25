@@ -794,18 +794,18 @@ First describe a simple brute-force solution (even if inefficient). Then outline
 Provide clear, language-agnostic pseudocode for the best optimized approach. Number each step or use proper indentation to show structure.
 
 ## 7. Sample Code
-Translate the pseudocode into clean, well-commented ${language} code with descriptive variable names.
+Translate the pseudocode into clean, well-commented ${language} code with descriptive variable names, the comments added must try to explain the code and help the student understand better.
 
 ## 8. Complexity Analysis
-Analyze both time and space complexity of the final solution with detailed explanations. Format as:
-- Time Complexity: O(X) - explanation
-- Space Complexity: O(Y) - explanation
+Analyze both time and space complexity of the final solution with detailed explanationsThat willl help the students understand how and why that is your answer. Format as:
+- Time Complexity: O(X) - explanation that will help the student understand the time complexity for that answer
+- Space Complexity: O(Y) - explanation that will help the student understand the space complexity for that answer
 
 ## 9. Walk-Through on Example
 Choose a non-trivial example and walk through the solution step by step, showing how variables change.
 
 ## 10. Visual Aid
-Provide a visual representation of key data structures or algorithm steps using markdown. If appropriate, include a diagram using mermaid or ASCII art.
+Provide a visual representation of key data structures or algorithm steps using markdown. If appropriate, include a diagram using mermaid or ASCII art, This diagram should be able to enhance and help the students understand better, throw some explanations.
 
 ## 11. Further Practice & Resources
 Suggest 2-3 similar problems that would reinforce understanding of this pattern, with brief explanations of how they relate.

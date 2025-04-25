@@ -1,176 +1,27 @@
 import { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "../ui/dialog";
-import { Input } from "../ui/input";
+import { Dialog, DialogContent } from "../ui/dialog";
 import { Button } from "../ui/button";
-import { Settings } from "lucide-react";
 import { useToast } from "../../contexts/toast";
+import { 
+  KeyRound, 
+  Settings, 
+  Zap, 
+  Braces, 
+  Cpu, 
+  Bot, 
+  TerminalSquare, 
+  Code2, 
+  X, 
+  Check, 
+  Brain, 
+  GraduationCap, 
+  MessageSquare, 
+  ArrowRight, 
+  ExternalLink, 
+  AlertCircle 
+} from "lucide-react";
 
 type APIProvider = "openai" | "gemini" | "anthropic";
-
-type AIModel = {
-  id: string;
-  name: string;
-  description: string;
-};
-
-type ModelCategory = {
-  key: 'extractionModel' | 'solutionModel' | 'debuggingModel';
-  title: string;
-  description: string;
-  openaiModels: AIModel[];
-  geminiModels: AIModel[];
-  anthropicModels: AIModel[];
-};
-
-// Define available models for each category
-const modelCategories: ModelCategory[] = [
-  {
-    key: 'extractionModel',
-    title: 'Problem Extraction',
-    description: 'Model used to analyze screenshots and extract problem details',
-    openaiModels: [
-      {
-        id: "gpt-4o",
-        name: "gpt-4o",
-        description: "Best overall performance for problem extraction"
-      },
-      {
-        id: "gpt-4o-mini",
-        name: "gpt-4o-mini",
-        description: "Faster, more cost-effective option"
-      }
-    ],
-    geminiModels: [
-      {
-        id: "gemini-1.5-pro",
-        name: "Gemini 1.5 Pro",
-        description: "Best overall performance for problem extraction"
-      },
-      {
-        id: "gemini-2.0-flash",
-        name: "Gemini 2.0 Flash",
-        description: "Faster, more cost-effective option"
-      }
-    ],
-    anthropicModels: [
-      {
-        id: "claude-3-7-sonnet-20250219",
-        name: "Claude 3.7 Sonnet",
-        description: "Best overall performance for problem extraction"
-      },
-      {
-        id: "claude-3-5-sonnet-20241022",
-        name: "Claude 3.5 Sonnet",
-        description: "Balanced performance and speed"
-      },
-      {
-        id: "claude-3-opus-20240229",
-        name: "Claude 3 Opus",
-        description: "Top-level intelligence, fluency, and understanding"
-      }
-    ]
-  },
-  {
-    key: 'solutionModel',
-    title: 'Solution Generation',
-    description: 'Model used to generate coding solutions',
-    openaiModels: [
-      {
-        id: "gpt-4o",
-        name: "gpt-4o",
-        description: "Strong overall performance for coding tasks"
-      },
-      {
-        id: "gpt-4o-mini",
-        name: "gpt-4o-mini",
-        description: "Faster, more cost-effective option"
-      }
-    ],
-    geminiModels: [
-      {
-        id: "gemini-1.5-pro",
-        name: "Gemini 1.5 Pro",
-        description: "Strong overall performance for coding tasks"
-      },
-      {
-        id: "gemini-2.0-flash",
-        name: "Gemini 2.0 Flash",
-        description: "Faster, more cost-effective option"
-      }
-    ],
-    anthropicModels: [
-      {
-        id: "claude-3-7-sonnet-20250219",
-        name: "Claude 3.7 Sonnet",
-        description: "Strong overall performance for coding tasks"
-      },
-      {
-        id: "claude-3-5-sonnet-20241022",
-        name: "Claude 3.5 Sonnet",
-        description: "Balanced performance and speed"
-      },
-      {
-        id: "claude-3-opus-20240229",
-        name: "Claude 3 Opus",
-        description: "Top-level intelligence, fluency, and understanding"
-      }
-    ]
-  },
-  {
-    key: 'debuggingModel',
-    title: 'Debugging',
-    description: 'Model used to debug and improve solutions',
-    openaiModels: [
-      {
-        id: "gpt-4o",
-        name: "gpt-4o",
-        description: "Best for analyzing code and error messages"
-      },
-      {
-        id: "gpt-4o-mini",
-        name: "gpt-4o-mini",
-        description: "Faster, more cost-effective option"
-      }
-    ],
-    geminiModels: [
-      {
-        id: "gemini-1.5-pro",
-        name: "Gemini 1.5 Pro",
-        description: "Best for analyzing code and error messages"
-      },
-      {
-        id: "gemini-2.0-flash",
-        name: "Gemini 2.0 Flash",
-        description: "Faster, more cost-effective option"
-      }
-    ],
-    anthropicModels: [
-      {
-        id: "claude-3-7-sonnet-20250219",
-        name: "Claude 3.7 Sonnet",
-        description: "Best for analyzing code and error messages"
-      },
-      {
-        id: "claude-3-5-sonnet-20241022",
-        name: "Claude 3.5 Sonnet",
-        description: "Balanced performance and speed"
-      },
-      {
-        id: "claude-3-opus-20240229",
-        name: "Claude 3 Opus",
-        description: "Top-level intelligence, fluency, and understanding"
-      }
-    ]
-  }
-];
 
 interface SettingsDialogProps {
   open?: boolean;
@@ -185,6 +36,7 @@ export function SettingsDialog({ open: externalOpen, onOpenChange }: SettingsDia
   const [solutionModel, setSolutionModel] = useState("gpt-4o");
   const [debuggingModel, setDebuggingModel] = useState("gpt-4o");
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'api' | 'models' | 'shortcuts'>('api');
   const { showToast } = useToast();
 
   // Sync with external open state
@@ -197,7 +49,6 @@ export function SettingsDialog({ open: externalOpen, onOpenChange }: SettingsDia
   // Handle open state changes
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
-    // Only call onOpenChange when there's actually a change
     if (onOpenChange && newOpen !== externalOpen) {
       onOpenChange(newOpen);
     }
@@ -207,24 +58,17 @@ export function SettingsDialog({ open: externalOpen, onOpenChange }: SettingsDia
   useEffect(() => {
     if (open) {
       setIsLoading(true);
-      interface Config {
-        apiKey?: string;
-        apiProvider?: APIProvider;
-        extractionModel?: string;
-        solutionModel?: string;
-        debuggingModel?: string;
-      }
-
+      
       window.electronAPI
         .getConfig()
-        .then((config: Config) => {
+        .then((config: { apiKey: any; apiProvider: any; extractionModel: any; solutionModel: any; debuggingModel: any; }) => {
           setApiKey(config.apiKey || "");
           setApiProvider(config.apiProvider || "openai");
           setExtractionModel(config.extractionModel || "gpt-4o");
           setSolutionModel(config.solutionModel || "gpt-4o");
           setDebuggingModel(config.debuggingModel || "gpt-4o");
         })
-        .catch((error: unknown) => {
+        .catch((error: any) => {
           console.error("Failed to load config:", error);
           showToast("Error", "Failed to load settings", "error");
         })
@@ -296,291 +140,504 @@ export function SettingsDialog({ open: externalOpen, onOpenChange }: SettingsDia
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent 
-        className="sm:max-w-md bg-black border border-white/10 text-white settings-dialog"
+        className="settings-dialog p-0 bg-gradient-to-b from-black to-[#0c0c0c] border border-amber-500/10 text-white rounded-xl overflow-hidden"
         style={{
           position: 'fixed',
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: 'min(450px, 90vw)',
-          height: 'auto',
-          minHeight: '400px',
+          width: 'min(600px, 90vw)',
+          height: 'min(750px, 85vh)',
           maxHeight: '90vh',
-          overflowY: 'auto',
-          zIndex: 9999,
           margin: 0,
-          padding: '20px',
-          transition: 'opacity 0.25s ease, transform 0.25s ease',
-          animation: 'fadeIn 0.25s ease forwards',
+          boxShadow: '0 10px 25px -5px rgba(245, 158, 11, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.2)',
+          zIndex: 9999,
           opacity: 0.98
         }}
       >        
-        <DialogHeader>
-          <DialogTitle>API Settings</DialogTitle>
-          <DialogDescription className="text-white/70">
-            Configure your API key and model preferences. You'll need your own API key to use this application.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 py-4">
-          {/* API Provider Selection */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-white">API Provider</label>
-            <div className="flex gap-2">
-              <div
-                className={`flex-1 p-2 rounded-lg cursor-pointer transition-colors ${
-                  apiProvider === "openai"
-                    ? "bg-white/10 border border-white/20"
-                    : "bg-black/30 border border-white/5 hover:bg-white/5"
-                }`}
-                onClick={() => handleProviderChange("openai")}
-              >
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`w-3 h-3 rounded-full ${
-                      apiProvider === "openai" ? "bg-white" : "bg-white/20"
-                    }`}
-                  />
-                  <div className="flex flex-col">
-                    <p className="font-medium text-white text-sm">OpenAI</p>
-                    <p className="text-xs text-white/60">GPT-4o models</p>
-                  </div>
-                </div>
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="flex items-center justify-between p-5 border-b border-amber-500/10">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-500/10 rounded-lg">
+                <Settings className="h-5 w-5 text-amber-500" />
               </div>
-              <div
-                className={`flex-1 p-2 rounded-lg cursor-pointer transition-colors ${
-                  apiProvider === "gemini"
-                    ? "bg-white/10 border border-white/20"
-                    : "bg-black/30 border border-white/5 hover:bg-white/5"
-                }`}
-                onClick={() => handleProviderChange("gemini")}
-              >
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`w-3 h-3 rounded-full ${
-                      apiProvider === "gemini" ? "bg-white" : "bg-white/20"
-                    }`}
-                  />
-                  <div className="flex flex-col">
-                    <p className="font-medium text-white text-sm">Gemini</p>
-                    <p className="text-xs text-white/60">Gemini 1.5 models</p>
-                  </div>
-                </div>
-              </div>
-              <div
-                className={`flex-1 p-2 rounded-lg cursor-pointer transition-colors ${
-                  apiProvider === "anthropic"
-                    ? "bg-white/10 border border-white/20"
-                    : "bg-black/30 border border-white/5 hover:bg-white/5"
-                }`}
-                onClick={() => handleProviderChange("anthropic")}
-              >
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`w-3 h-3 rounded-full ${
-                      apiProvider === "anthropic" ? "bg-white" : "bg-white/20"
-                    }`}
-                  />
-                  <div className="flex flex-col">
-                    <p className="font-medium text-white text-sm">Claude</p>
-                    <p className="text-xs text-white/60">Claude 3 models</p>
-                  </div>
-                </div>
+              <div>
+                <h2 className="text-lg font-medium text-white">LeetCode Helper Settings</h2>
+                <p className="text-xs text-amber-500/80">Customize your DSA learning experience</p>
               </div>
             </div>
+            <button 
+              onClick={() => handleOpenChange(false)}
+              className="rounded-full p-2 hover:bg-white/5 transition-colors"
+            >
+              <X className="h-4 w-4 text-white/60" />
+            </button>
           </div>
           
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-white" htmlFor="apiKey">
-            {apiProvider === "openai" ? "OpenAI API Key" : 
-             apiProvider === "gemini" ? "Gemini API Key" : 
-             "Anthropic API Key"}
-            </label>
-            <Input
-              id="apiKey"
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder={
-                apiProvider === "openai" ? "sk-..." : 
-                apiProvider === "gemini" ? "Enter your Gemini API key" :
-                "sk-ant-..."
-              }
-              className="bg-black/50 border-white/10 text-white"
+          {/* Tab navigation */}
+          <div className="flex border-b border-amber-500/10">
+            <TabButton 
+              isActive={activeTab === 'api'} 
+              onClick={() => setActiveTab('api')}
+              icon={<KeyRound className="w-4 h-4" />}
+              label="API Key"
             />
-            {apiKey && (
-              <p className="text-xs text-white/50">
-                Current: {maskApiKey(apiKey)}
-              </p>
-            )}
-            <p className="text-xs text-white/50">
-              Your API key is stored locally and never sent to any server except {apiProvider === "openai" ? "OpenAI" : "Google"}
-            </p>
-            <div className="mt-2 p-2 rounded-md bg-white/5 border border-white/10">
-              <p className="text-xs text-white/80 mb-1">Don't have an API key?</p>
-              {apiProvider === "openai" ? (
-                <>
-                  <p className="text-xs text-white/60 mb-1">1. Create an account at <button 
-                    onClick={() => openExternalLink('https://platform.openai.com/signup')} 
-                    className="text-blue-400 hover:underline cursor-pointer">OpenAI</button>
-                  </p>
-                  <p className="text-xs text-white/60 mb-1">2. Go to <button 
-                    onClick={() => openExternalLink('https://platform.openai.com/api-keys')} 
-                    className="text-blue-400 hover:underline cursor-pointer">API Keys</button> section
-                  </p>
-                  <p className="text-xs text-white/60">3. Create a new secret key and paste it here</p>
-                </>
-              ) : apiProvider === "gemini" ?  (
-                <>
-                  <p className="text-xs text-white/60 mb-1">1. Create an account at <button 
-                    onClick={() => openExternalLink('https://aistudio.google.com/')} 
-                    className="text-blue-400 hover:underline cursor-pointer">Google AI Studio</button>
-                  </p>
-                  <p className="text-xs text-white/60 mb-1">2. Go to the <button 
-                    onClick={() => openExternalLink('https://aistudio.google.com/app/apikey')} 
-                    className="text-blue-400 hover:underline cursor-pointer">API Keys</button> section
-                  </p>
-                  <p className="text-xs text-white/60">3. Create a new API key and paste it here</p>
-                </>
-              ) : (
-                <>
-                  <p className="text-xs text-white/60 mb-1">1. Create an account at <button 
-                    onClick={() => openExternalLink('https://console.anthropic.com/signup')} 
-                    className="text-blue-400 hover:underline cursor-pointer">Anthropic</button>
-                  </p>
-                  <p className="text-xs text-white/60 mb-1">2. Go to the <button 
-                    onClick={() => openExternalLink('https://console.anthropic.com/settings/keys')} 
-                    className="text-blue-400 hover:underline cursor-pointer">API Keys</button> section
-                  </p>
-                  <p className="text-xs text-white/60">3. Create a new API key and paste it here</p>
-                </>
-              )}
-            </div>
+            <TabButton 
+              isActive={activeTab === 'models'} 
+              onClick={() => setActiveTab('models')}
+              icon={<Brain className="w-4 h-4" />}
+              label="AI Models"
+            />
+            <TabButton 
+              isActive={activeTab === 'shortcuts'} 
+              onClick={() => setActiveTab('shortcuts')}
+              icon={<Zap className="w-4 h-4" />}
+              label="Shortcuts"
+            />
           </div>
           
-          <div className="space-y-2 mt-4">
-            <label className="text-sm font-medium text-white mb-2 block">Keyboard Shortcuts</label>
-            <div className="bg-black/30 border border-white/10 rounded-lg p-3">
-              <div className="grid grid-cols-2 gap-y-2 text-xs">
-                <div className="text-white/70">Toggle Visibility</div>
-                <div className="text-white/90 font-mono">Ctrl+B / Cmd+B</div>
-                
-                <div className="text-white/70">Take Screenshot</div>
-                <div className="text-white/90 font-mono">Ctrl+H / Cmd+H</div>
-                
-                <div className="text-white/70">Process Screenshots</div>
-                <div className="text-white/90 font-mono">Ctrl+Enter / Cmd+Enter</div>
-                
-                <div className="text-white/70">Delete Last Screenshot</div>
-                <div className="text-white/90 font-mono">Ctrl+L / Cmd+L</div>
-                
-                <div className="text-white/70">Reset View</div>
-                <div className="text-white/90 font-mono">Ctrl+R / Cmd+R</div>
-                
-                <div className="text-white/70">Quit Application</div>
-                <div className="text-white/90 font-mono">Ctrl+Q / Cmd+Q</div>
-                
-                <div className="text-white/70">Move Window</div>
-                <div className="text-white/90 font-mono">Ctrl+Arrow Keys</div>
-                
-                <div className="text-white/70">Decrease Opacity</div>
-                <div className="text-white/90 font-mono">Ctrl+[ / Cmd+[</div>
-                
-                <div className="text-white/70">Increase Opacity</div>
-                <div className="text-white/90 font-mono">Ctrl+] / Cmd+]</div>
-                
-                <div className="text-white/70">Zoom Out</div>
-                <div className="text-white/90 font-mono">Ctrl+- / Cmd+-</div>
-                
-                <div className="text-white/70">Reset Zoom</div>
-                <div className="text-white/90 font-mono">Ctrl+0 / Cmd+0</div>
-                
-                <div className="text-white/70">Zoom In</div>
-                <div className="text-white/90 font-mono">Ctrl+= / Cmd+=</div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="space-y-4 mt-4">
-            <label className="text-sm font-medium text-white">AI Model Selection</label>
-            <p className="text-xs text-white/60 -mt-3 mb-2">
-              Select which models to use for each stage of the process
-            </p>
-            
-            {modelCategories.map((category) => {
-              // Get the appropriate model list based on selected provider
-              const models = 
-                apiProvider === "openai" ? category.openaiModels : 
-                apiProvider === "gemini" ? category.geminiModels :
-                category.anthropicModels;
-              
-              return (
-                <div key={category.key} className="mb-4">
-                  <label className="text-sm font-medium text-white mb-1 block">
-                    {category.title}
-                  </label>
-                  <p className="text-xs text-white/60 mb-2">{category.description}</p>
+          {/* Content area */}
+          <div className="flex-1 overflow-y-auto p-5">
+            {/* API Key Tab */}
+            {activeTab === 'api' && (
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-amber-400 flex items-center gap-2">
+                    <Bot className="w-4 h-4" />
+                    Select AI Provider
+                  </h3>
                   
-                  <div className="space-y-2">
-                    {models.map((m) => {
-                      // Determine which state to use based on category key
-                      const currentValue = 
-                        category.key === 'extractionModel' ? extractionModel :
-                        category.key === 'solutionModel' ? solutionModel :
-                        debuggingModel;
-                      
-                      // Determine which setter function to use
-                      const setValue = 
-                        category.key === 'extractionModel' ? setExtractionModel :
-                        category.key === 'solutionModel' ? setSolutionModel :
-                        setDebuggingModel;
-                        
-                      return (
-                        <div
-                          key={m.id}
-                          className={`p-2 rounded-lg cursor-pointer transition-colors ${
-                            currentValue === m.id
-                              ? "bg-white/10 border border-white/20"
-                              : "bg-black/30 border border-white/5 hover:bg-white/5"
-                          }`}
-                          onClick={() => setValue(m.id)}
-                        >
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`w-3 h-3 rounded-full ${
-                                currentValue === m.id ? "bg-white" : "bg-white/20"
-                              }`}
-                            />
-                            <div>
-                              <p className="font-medium text-white text-xs">{m.name}</p>
-                              <p className="text-xs text-white/60">{m.description}</p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div className="grid grid-cols-3 gap-3">
+                    <ProviderCard
+                      isSelected={apiProvider === "openai"}
+                      onClick={() => handleProviderChange("openai")}
+                      name="OpenAI"
+                      description="GPT-4o models"
+                      icon={<TerminalSquare className="w-5 h-5" />}
+                    />
+                    <ProviderCard
+                      isSelected={apiProvider === "gemini"}
+                      onClick={() => handleProviderChange("gemini")}
+                      name="Gemini"
+                      description="Google AI models"
+                      icon={<Cpu className="w-5 h-5" />}
+                    />
+                    <ProviderCard
+                      isSelected={apiProvider === "anthropic"}
+                      onClick={() => handleProviderChange("anthropic")}
+                      name="Claude"
+                      description="Anthropic models"
+                      icon={<MessageSquare className="w-5 h-5" />}
+                    />
                   </div>
                 </div>
-              );
-            })}
+                
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-amber-400 flex items-center gap-2">
+                    <KeyRound className="w-4 h-4" />
+                    API Key
+                  </h3>
+                  
+                  <div className="relative">
+                    <input
+                      type="password"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      placeholder={
+                        apiProvider === "openai" ? "sk-..." : 
+                        apiProvider === "gemini" ? "Enter your Gemini API key" :
+                        "sk-ant-..."
+                      }
+                      className="w-full bg-black/50 border border-amber-500/20 rounded-lg px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-amber-500/50"
+                    />
+                    {apiKey && (
+                      <div className="absolute right-3 top-3 text-xs px-2 py-0.5 rounded bg-amber-500/10 text-amber-400">
+                        {maskApiKey(apiKey)}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <p className="text-xs text-white/50 flex items-center gap-1.5">
+                    <AlertCircle className="w-3 h-3 text-amber-500/80" />
+                    Your API key is stored locally and only used for API calls
+                  </p>
+                </div>
+                
+                <div className="mt-4 p-4 rounded-lg bg-gradient-to-br from-amber-900/10 to-amber-700/5 border border-amber-500/10">
+                  <h4 className="text-sm font-medium text-amber-400 mb-2 flex items-center gap-2">
+                    <GraduationCap className="w-4 h-4" />
+                    Getting an API Key
+                  </h4>
+                  
+                  <div className="space-y-3">
+                    {getApiInstructionsForProvider(apiProvider).map((step, index) => (
+                      <div key={index} className="flex gap-3">
+                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center text-xs font-medium">
+                          {index + 1}
+                        </div>
+                        <div className="text-xs text-white/70">
+                          {step.text}
+                          {step.link && (
+                            <button 
+                              className="ml-1 text-amber-400 hover:underline flex items-center gap-0.5"
+                              onClick={() => openExternalLink(step.link!)}
+                            >
+                              {step.linkText}
+                              <ExternalLink className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* AI Models Tab */}
+            {activeTab === 'models' && (
+              <div className="space-y-6">
+                <p className="text-xs text-white/70 mb-4">
+                  Select which AI models to use for different stages of the problem-solving process. 
+                  More powerful models provide better insights but may use more API credits.
+                </p>
+                
+                {modelCategories.map((category) => {
+                  // Get models for current provider
+                  const models = 
+                    apiProvider === "openai" ? category.openaiModels : 
+                    apiProvider === "gemini" ? category.geminiModels :
+                    category.anthropicModels;
+                  
+                  // Get current model value and setter function
+                  const currentValue = 
+                    category.key === 'extractionModel' ? extractionModel :
+                    category.key === 'solutionModel' ? solutionModel :
+                    debuggingModel;
+                    
+                  const setValue = 
+                    category.key === 'extractionModel' ? setExtractionModel :
+                    category.key === 'solutionModel' ? setSolutionModel :
+                    setDebuggingModel;
+                    
+                  return (
+                    <div key={category.key} className="pb-5 border-b border-amber-500/10 last:border-0">
+                      <h3 className="text-sm font-semibold text-amber-400 mb-2 flex items-center gap-2">
+                        {category.icon}
+                        {category.title}
+                      </h3>
+                      <p className="text-xs text-white/60 mb-3">{category.description}</p>
+                      
+                      <div className="space-y-2">
+                        {models.map((model) => (
+                          <ModelCard
+                            key={model.id}
+                            model={model}
+                            isSelected={currentValue === model.id}
+                            onSelect={() => setValue(model.id)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            
+            {/* Shortcuts Tab */}
+            {activeTab === 'shortcuts' && (
+              <div className="space-y-6">
+                <p className="text-xs text-white/70 mb-4">
+                  LeetCode Helper uses global keyboard shortcuts for quick access to features.
+                  These shortcuts work anywhere on your screen.
+                </p>
+                
+                <div className="bg-black/40 border border-amber-500/10 rounded-lg overflow-hidden">
+                  <div className="grid grid-cols-3 text-xs font-medium text-amber-400 p-3 border-b border-amber-500/10">
+                    <div>Action</div>
+                    <div>Shortcut</div>
+                    <div>Description</div>
+                  </div>
+                  
+                  <div className="divide-y divide-amber-500/10">
+                    {shortcuts.map((shortcut, index) => (
+                      <div key={index} className="grid grid-cols-3 p-3 hover:bg-amber-500/5 transition-colors">
+                        <div className="text-sm text-white">{shortcut.action}</div>
+                        <div>
+                          {shortcut.keys.split('/').map((combo, idx) => (
+                            <span key={idx} className="inline-flex items-center px-2 py-0.5 mr-1 bg-black border border-amber-500/20 rounded text-amber-500 text-xs font-mono">
+                              {combo.trim()}
+                            </span>
+                          ))}
+                        </div>
+                        <div className="text-xs text-white/60">{shortcut.description}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="p-4 rounded-lg bg-gradient-to-br from-amber-900/10 to-amber-700/5 border border-amber-500/10">
+                  <h4 className="text-sm font-medium text-amber-400 mb-2">Learning Tips</h4>
+                  <ul className="space-y-2 text-xs text-white/70">
+                    <li className="flex gap-2">
+                      <Check className="w-4 h-4 text-amber-500/80 flex-shrink-0" />
+                      <span>Use <span className="text-white">Ctrl+T/Cmd+T</span> to enable click-through mode when working directly in LeetCode</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <Check className="w-4 h-4 text-amber-500/80 flex-shrink-0" />
+                      <span>Capture multiple screenshots (<span className="text-white">Ctrl+H/Cmd+H</span>) for multi-part problems or complex test cases</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <Check className="w-4 h-4 text-amber-500/80 flex-shrink-0" />
+                      <span>For best learning experience, try to solve problems first, then use the app to verify understanding and learn optimization techniques</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <Check className="w-4 h-4 text-amber-500/80 flex-shrink-0" />
+                      <span>When debugging, take screenshots of both your code and any error messages for comprehensive analysis</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Footer/Actions */}
+          <div className="p-5 border-t border-amber-500/10 flex justify-between">
+            <Button
+              variant="outline"
+              onClick={() => handleOpenChange(false)}
+              className="px-4 py-2 border border-amber-500/20 bg-transparent hover:bg-amber-500/5 text-white rounded-lg transition-colors"
+            >
+              Cancel
+            </Button>
+            
+            <Button
+              onClick={handleSave}
+              disabled={isLoading || !apiKey}
+              className={`px-6 py-2 bg-amber-500 hover:bg-amber-600 text-black font-medium rounded-lg transition-colors flex items-center gap-2 ${
+                isLoading || !apiKey ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              {isLoading ? 'Saving...' : 'Save Settings'}
+              {!isLoading && <ArrowRight className="w-4 h-4" />}
+            </Button>
           </div>
         </div>
-        <DialogFooter className="flex justify-between sm:justify-between">
-          <Button
-            variant="outline"
-            onClick={() => handleOpenChange(false)}
-            className="border-white/10 hover:bg-white/5 text-white"
-          >
-            Cancel
-          </Button>
-          <Button
-            className="px-4 py-3 bg-white text-black rounded-xl font-medium hover:bg-white/90 transition-colors"
-            onClick={handleSave}
-            disabled={isLoading || !apiKey}
-          >
-            {isLoading ? "Saving..." : "Save Settings"}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
+// Helper Components
+const TabButton = ({ isActive, onClick, icon, label }: { 
+  isActive: boolean, 
+  onClick: () => void,
+  icon: React.ReactNode,
+  label: string
+}) => (
+  <button
+    onClick={onClick}
+    className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-all ${
+      isActive 
+        ? 'text-amber-400 border-amber-500' 
+        : 'text-white/50 border-transparent hover:text-white/80 hover:border-amber-500/30'
+    }`}
+  >
+    {icon}
+    {label}
+  </button>
+);
+
+const ProviderCard = ({ isSelected, onClick, name, description, icon }: {
+  isSelected: boolean,
+  onClick: () => void,
+  name: string,
+  description: string,
+  icon: React.ReactNode
+}) => (
+  <div
+    onClick={onClick}
+    className={`cursor-pointer p-3 rounded-lg border transition-all flex flex-col items-center text-center gap-2 ${
+      isSelected 
+        ? 'bg-amber-500/10 border-amber-500/50' 
+        : 'bg-black/40 border-amber-500/10 hover:bg-black/80 hover:border-amber-500/30'
+    }`}
+  >
+    <div className={`p-2 rounded-full ${isSelected ? 'bg-amber-500/20' : 'bg-black/40'}`}>
+      {icon}
+    </div>
+    <div>
+      <div className={`font-medium ${isSelected ? 'text-amber-400' : 'text-white'}`}>{name}</div>
+      <div className="text-xs text-white/50">{description}</div>
+    </div>
+  </div>
+);
+
+const ModelCard = ({ model, isSelected, onSelect }: {
+  model: {id: string, name: string, description: string},
+  isSelected: boolean,
+  onSelect: () => void
+}) => (
+  <div
+    onClick={onSelect}
+    className={`cursor-pointer p-3 rounded-lg border transition-all ${
+      isSelected 
+        ? 'bg-amber-500/10 border-amber-500/30' 
+        : 'bg-black/40 border-amber-500/10 hover:border-amber-500/20'
+    }`}
+  >
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <div className={`w-4 h-4 rounded-full flex-shrink-0 ${
+          isSelected ? 'bg-amber-500' : 'bg-black border border-amber-500/20'
+        }`}>
+          {isSelected && <Check className="w-3 h-3 text-black" />}
+        </div>
+        <div className="font-medium text-sm">{model.name}</div>
+      </div>
+      {isSelected && (
+        <span className="text-xs px-2 py-0.5 bg-amber-500/10 text-amber-400 rounded">Active</span>
+      )}
+    </div>
+    <p className="text-xs text-white/60 mt-1 ml-6">{model.description}</p>
+  </div>
+);
+
+// Helper functions and data
+function getApiInstructionsForProvider(provider: APIProvider) {
+  if (provider === "openai") {
+    return [
+      { text: "Create an account at", link: "https://platform.openai.com/signup", linkText: "OpenAI" },
+      { text: "Go to API Keys section in", link: "https://platform.openai.com/api-keys", linkText: "your dashboard" },
+      { text: "Click 'Create new secret key' and copy it" }
+    ];
+  } else if (provider === "gemini") {
+    return [
+      { text: "Create an account at", link: "https://aistudio.google.com/", linkText: "Google AI Studio" },
+      { text: "Navigate to", link: "https://aistudio.google.com/app/apikey", linkText: "API Keys" },
+      { text: "Generate a new API key and copy it" }
+    ];
+  } else {
+    return [
+      { text: "Create an account at", link: "https://console.anthropic.com/signup", linkText: "Anthropic" },
+      { text: "Go to", link: "https://console.anthropic.com/settings/keys", linkText: "API Keys" },
+      { text: "Create a new API key and copy it here" }
+    ];
+  }
+}
+
+// Model category definitions
+const modelCategories = [
+  {
+    key: 'extractionModel' as const,
+    title: 'Problem Understanding',
+    description: 'Used to analyze problems, identify patterns, and explore edge cases',
+    icon: <Code2 className="w-4 h-4" />,
+    openaiModels: [
+      { id: "gpt-4o", name: "GPT-4o", description: "Best for comprehensive problem analysis and pattern recognition" },
+      { id: "gpt-4o-mini", name: "GPT-4o Mini", description: "Faster processing with good pattern identification" }
+    ],
+    geminiModels: [
+      { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", description: "Excellent at breaking down complex DSA problems" },
+      { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", description: "Quick analysis with solid edge case detection" }
+    ],
+    anthropicModels: [
+      { id: "claude-3-7-sonnet-20250219", name: "Claude 3.7 Sonnet", description: "Exceptional at identifying patterns and constraints" },
+      { id: "claude-3-5-sonnet-20241022", name: "Claude 3.5 Sonnet", description: "Strong problem analysis with educational insights" },
+      { id: "claude-3-opus-20240229", name: "Claude 3 Opus", description: "Most detailed problem breakdown and pattern recognition" }
+    ]
+  },
+  {
+    key: 'solutionModel' as const,
+    title: 'Learning Methodology',
+    description: 'Provides structured learning approach with 11-step methodology',
+    icon: <Braces className="w-4 h-4" />,
+    openaiModels: [
+      { id: "gpt-4o", name: "GPT-4o", description: "Best for comprehensive explanations and visual aids" },
+      { id: "gpt-4o-mini", name: "GPT-4o Mini", description: "Good educational content with faster generation" }
+    ],
+    geminiModels: [
+      { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", description: "Detailed step-by-step learning approach" },
+      { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", description: "Faster educational explanations" }
+    ],
+    anthropicModels: [
+      { id: "claude-3-7-sonnet-20250219", name: "Claude 3.7 Sonnet", description: "Excellent structured learning methodology" },
+      { id: "claude-3-5-sonnet-20241022", name: "Claude 3.5 Sonnet", description: "Clear step-by-step educational approach" },
+      { id: "claude-3-opus-20240229", name: "Claude 3 Opus", description: "Most comprehensive learning methodology" }
+    ]
+  },
+  {
+    key: 'debuggingModel' as const,
+    title: 'Code Improvement',
+    description: 'Analyzes your code, identifies issues, and provides educational insights',
+    icon: <Zap className="w-4 h-4" />,
+    openaiModels: [
+      { id: "gpt-4o", name: "GPT-4o", description: "Best for debugging with educational explanations" },
+      { id: "gpt-4o-mini", name: "GPT-4o Mini", description: "Quick code review with learning insights" }
+    ],
+    geminiModels: [
+      { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", description: "Thorough code analysis with key learning points" },
+      { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", description: "Fast debugging with educational takeaways" }
+    ],
+    anthropicModels: [
+      { id: "claude-3-7-sonnet-20250219", name: "Claude 3.7 Sonnet", description: "Excellent debugging with concept explanations" },
+      { id: "claude-3-5-sonnet-20241022", name: "Claude 3.5 Sonnet", description: "Good balance of fixes and educational content" },
+      { id: "claude-3-opus-20240229", name: "Claude 3 Opus", description: "Most in-depth code review with learning objectives" }
+    ]
+  }
+];
+
+// Shortcut data
+const shortcuts = [
+  {
+    action: "Toggle Visibility", 
+    keys: "Ctrl+B / Cmd+B",
+    description: "Show or hide the helper window"
+  },
+  {
+    action: "Click-Through Mode", 
+    keys: "Ctrl+T / Cmd+T",
+    description: "Enable interaction with underlying windows"
+  },
+  {
+    action: "Capture Problem", 
+    keys: "Ctrl+H / Cmd+H",
+    description: "Take screenshot of the LeetCode problem"
+  },
+  {
+    action: "Analyze Problem", 
+    keys: "Ctrl+Enter / Cmd+Enter",
+    description: "Generate comprehensive analysis & solution"
+  },
+  {
+    action: "Remove Last Screenshot", 
+    keys: "Ctrl+L / Cmd+L",
+    description: "Delete the most recent screenshot"
+  },
+  {
+    action: "New Problem", 
+    keys: "Ctrl+R / Cmd+R",
+    description: "Reset and prepare for a new problem"
+  },
+  {
+    action: "Move Window", 
+    keys: "Ctrl+Arrows / Cmd+Arrows",
+    description: "Reposition the window on screen"
+  },
+  {
+    action: "Decrease Opacity", 
+    keys: "Ctrl+[ / Cmd+[",
+    description: "Make window more transparent"
+  },
+  {
+    action: "Increase Opacity", 
+    keys: "Ctrl+] / Cmd+]",
+    description: "Make window more visible"
+  },
+  {
+    action: "Quit Application", 
+    keys: "Ctrl+Q / Cmd+Q",
+    description: "Close LeetCode Helper completely"
+  }
+];

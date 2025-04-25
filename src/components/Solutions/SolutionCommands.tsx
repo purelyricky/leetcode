@@ -15,20 +15,6 @@ export interface SolutionCommandsProps {
   setLanguage: (language: string) => void
 }
 
-const handleSignOut = async () => {
-  try {
-    // Clear any local storage or electron-specific data first
-    localStorage.clear()
-    sessionStorage.clear()
-
-    // Then sign out from Supabase
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
-  } catch (err) {
-    console.error("Error signing out:", err)
-  }
-}
-
 const SolutionCommands: React.FC<SolutionCommandsProps> = ({
   onTooltipVisibilityChange,
   isProcessing,
@@ -51,6 +37,29 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
     }
   }, [isTooltipVisible, onTooltipVisibilityChange])
 
+  const handleSignOut = async () => {
+    try {
+      // Clear any local storage or electron-specific data
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // Clear the API key in the configuration
+      await window.electronAPI.updateConfig({
+        apiKey: '',
+      });
+
+      showToast('Success', 'Logged out successfully', 'success');
+
+      // Reload the app after a short delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (err) {
+      console.error("Error logging out:", err);
+      showToast('Error', 'Failed to log out', 'error');
+    }
+  }
+
   const handleMouseEnter = () => {
     setIsTooltipVisible(true)
   }
@@ -63,6 +72,41 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
     <div>
       <div className="pt-2 w-fit">
         <div className="text-xs text-white/90 backdrop-blur-md bg-black/60 rounded-lg py-2 px-4 flex items-center justify-center gap-4">
+          {/* Logo and Title */}
+          <div className="flex items-center gap-2 mr-3">
+            <div className="w-7 h-7">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+                {/* Rounded square background */}
+                <rect width="100%" height="100%" rx="100" ry="100" fill="#ffdd00" />
+
+                {/* Subtle glow effect */}
+                <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+                  <feGaussianBlur stdDeviation="5" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+
+                {/* Code brackets and elements - centered, bold, popping design */}
+                <g transform="translate(16, 0)" filter="url(#glow)">
+                  {/* Left bracket - bolder, centered */}
+                  <path d="M130,256 L190,186 M130,256 L190,326" fill="none" stroke="#000000" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" />
+
+                  {/* Right bracket - bolder, centered */}
+                  <path d="M362,256 L302,186 M362,256 L302,326" fill="none" stroke="#000000" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" />
+
+                  {/* Slash - bolder, centered */}
+                  <path d="M230,156 L290,356" fill="none" stroke="#000000" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" />
+
+                  {/* Dot/connection point - larger */}
+                  <circle cx="290" cy="290" r="15" fill="#000000" />
+                </g>
+
+                {/* Adding depth with subtle shadow */}
+                <rect x="2" y="2" width="508" height="508" rx="100" ry="100" fill="none" stroke="#F5F5F5" stroke-width="1" opacity="0.3" />
+              </svg>
+            </div>
+            <span className="text-[14px] font-medium text-white/90 whitespace-nowrap">Leetcode Helper</span>
+          </div>
+
           {/* Show/Hide - Always visible */}
           <div
             className="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
@@ -213,7 +257,7 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
                 strokeLinejoin="round"
                 className="w-3.5 h-3.5"
               >
-                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
                 <circle cx="12" cy="12" r="3" />
               </svg>
             </div>
@@ -375,13 +419,43 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
                         </>
                       )}
 
-                      {/* Start Over - Always visible */}
+                      {/* Click Through Command */}
                       <div
                         className="cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
                         onClick={async () => {
                           try {
-                            const result =
-                              await window.electronAPI.triggerReset()
+                            const result = await window.electronAPI.toggleClickThrough()
+                            if (!result.success) {
+                              console.error("Failed to toggle click-through mode:", result.error)
+                              showToast("Error", "Failed to toggle click-through mode use CTR + T instead", "error")
+                            }
+                          } catch (error) {
+                            console.error("Error toggling click-through mode:", error)
+                            showToast("Error", "Failed to toggle click-through mode use CTR + T instead", "error")
+                          }
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="truncate">Click Through (Enable/Disable)</span>
+                          <div className="flex gap-1 flex-shrink-0">
+                            <span className="bg-white/20 px-1.5 py-0.5 rounded text-[10px] leading-none">
+                              {COMMAND_KEY}
+                            </span>
+                            <span className="bg-white/20 px-1.5 py-0.5 rounded text-[10px] leading-none">
+                              T
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-[10px] leading-relaxed text-white/70 truncate mt-1">
+                          Enable or disable click-through mode for the window.
+                        </p>
+                      </div>
+                      {/* Reset Command */}
+                      <div
+                        className="cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
+                        onClick={async () => {
+                          try {
+                            const result = await window.electronAPI.triggerReset()
                             if (!result.success) {
                               console.error("Failed to reset:", result.error)
                               showToast("Error", "Failed to reset", "error")
@@ -419,7 +493,7 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
                       {/* API Key Settings */}
                       <div className="mb-3 px-2 space-y-1">
                         <div className="flex items-center justify-between text-[13px] font-medium text-white/90">
-                          <span>OpenAI API Settings</span>
+                          <span>API Settings</span>
                           <button
                             className="bg-white/10 hover:bg-white/20 px-2 py-1 rounded text-[11px]"
                             onClick={() => window.electronAPI.openSettingsPortal()}
@@ -428,29 +502,18 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
                           </button>
                         </div>
                       </div>
+                      {/* Separator */}
+                      <div className="h-px w-full bg-white/10" />
 
-                      <button
+                      {/* Sign Out Button */}
+                      <div
+                        className="cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
                         onClick={handleSignOut}
-                        className="flex items-center gap-2 text-[11px] text-red-400 hover:text-red-300 transition-colors w-full"
                       >
-                        <div className="w-4 h-4 flex items-center justify-center">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="w-3 h-3"
-                          >
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                            <polyline points="16 17 21 12 16 7" />
-                            <line x1="21" y1="12" x2="9" y2="12" />
-                          </svg>
+                        <div className="flex items-center justify-between">
+                          <span className="text-red-400">Sign Out</span>
                         </div>
-                        Log Out
-                      </button>
+                      </div>
                     </div>
                   </div>
                 </div>
