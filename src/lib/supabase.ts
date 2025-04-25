@@ -1,40 +1,30 @@
-// This file has been emptied to remove Supabase dependencies.
-// The open-source version uses local configuration instead.
+import { createClient } from '@supabase/supabase-js'
 
-// Export empty objects to prevent import errors in case any components still reference this file
-export const supabase = {
-  auth: {
-    getUser: async () => ({ data: { user: null } }),
-    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-    signOut: async () => ({ error: null }),
-    exchangeCodeForSession: async () => ({ error: null }),
-    signInWithOAuth: async () => ({ data: null, error: null })
-  },
-  from: () => ({
-    select: () => ({
-      eq: () => ({
-        single: async () => null,
-        maybeSingle: async () => null
-      })
-    }),
-    update: () => ({
-      eq: () => ({
-        select: () => ({
-          single: async () => null
-        })
-      })
-    })
-  }),
-  channel: () => ({
-    on: () => ({
-      subscribe: () => ({
-        unsubscribe: () => {}
-      })
-    })
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables')
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+export const signInWithEmail = async (email: string, password: string) => {
+  return supabase.auth.signInWithPassword({ email, password })
+}
+
+export const signUpWithEmail = async (email: string, password: string, name: string) => {
+  return supabase.auth.signUp({ 
+    email, 
+    password,
+    options: {
+      data: {
+        full_name: name
+      }
+    }
   })
-};
+}
 
-export const signInWithGoogle = async () => {
-  console.log("Sign in with Google not available in open-source version");
-  return { data: null };
-};
+export const signOut = async () => {
+  return supabase.auth.signOut()
+}

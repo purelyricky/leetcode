@@ -3,10 +3,10 @@ import { Button } from './ui/button';
 import { Code, KeyRound, MousePointerClick, Keyboard } from 'lucide-react';
 
 interface WelcomeScreenProps {
-  onOpenSettings: () => void;
+  onGetStarted: () => void;
 }
 
-export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onOpenSettings }) => {
+export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted }) => {
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6">
       <div className="max-w-md w-full bg-[#0A0A0A] border border-amber-500/10 rounded-xl p-6 shadow-lg">
@@ -21,14 +21,14 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onOpenSettings }) 
         
         <div className="mb-6">
           <p className="text-white/70 text-sm mb-5">
-            Configure your API key to start analyzing DSA problems and getting step-by-step explanations.
+            Get comprehensive educational explanations for data structures and algorithms problems.
           </p>
           
           <Button 
-            onClick={onOpenSettings}
+            onClick={onGetStarted}
             className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-black font-medium rounded-lg transition-all"
           >
-            Configure API Settings
+            Get Started
           </Button>
         </div>
         

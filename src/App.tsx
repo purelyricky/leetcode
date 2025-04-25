@@ -15,6 +15,9 @@ import {
 import { ToastContext } from "./contexts/toast"
 import { WelcomeScreen } from "./components/WelcomeScreen"
 import { SettingsDialog } from "./components/Settings/SettingsDialog"
+import AuthPage from "./_pages/AuthPage"
+import { supabase } from "./lib/supabase"
+import { User } from "@supabase/supabase-js"
 
 // Create a React Query client
 const queryClient = new QueryClient({
@@ -43,10 +46,12 @@ function App() {
   const [currentLanguage, setCurrentLanguage] = useState<string>("python")
   const [isInitialized, setIsInitialized] = useState(false)
   const [hasApiKey, setHasApiKey] = useState(false)
-  const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false)
-  // Note: Model selection is now handled via separate extraction/solution/debugging model settings
-
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  
+  // Authentication states
+  const [isFirstVisit, setIsFirstVisit] = useState(true)
+  const [showAuthPage, setShowAuthPage] = useState(false)
+  const [user, setUser] = useState<User | null>(null)
 
   // Set unlimited credits
   const updateCredits = useCallback(() => {
@@ -83,69 +88,60 @@ function App() {
     []
   )
 
-  // Check for OpenAI API key and prompt if not found
+  // Check for authenticated user
   useEffect(() => {
-    const checkApiKey = async () => {
+    if (!isInitialized) return;
+    
+    const checkSession = async () => {
       try {
-        const hasKey = await window.electronAPI.checkApiKey()
-        setHasApiKey(hasKey)
+        const { data, error } = await supabase.auth.getUser();
         
-        // If no API key is found, show the settings dialog after a short delay
-        if (!hasKey) {
-          setTimeout(() => {
-            setIsSettingsOpen(true)
-          }, 1000)
+        if (error) {
+          console.error("Error checking session:", error);
+          return;
+        }
+        if (data?.user) {
+          setUser(data.user);
+          setIsFirstVisit(false);
+          setShowAuthPage(false);
+          
+          // User is logged in, check for API key
+          const hasKey = await window.electronAPI.checkApiKey();
+          setHasApiKey(hasKey);
+          
+          if (!hasKey) {
+            setIsSettingsOpen(true);
+          }
+        } else {
+          // No user found
+          setUser(null);
         }
       } catch (error) {
-        console.error("Failed to check API key:", error)
+        console.error("Session check failed:", error);
       }
-    }
+    };
     
-    if (isInitialized) {
-      checkApiKey()
-    }
-  }, [isInitialized])
-
-  // Initialize dropdown handler
-  useEffect(() => {
-    if (isInitialized) {
-      // Process all types of dropdown elements with a shorter delay
-      const timer = setTimeout(() => {
-        // Find both native select elements and custom dropdowns
-        const selectElements = document.querySelectorAll('select');
-        const customDropdowns = document.querySelectorAll('.dropdown-trigger, [role="combobox"], button:has(.dropdown)');
-        
-        // Enable native selects
-        selectElements.forEach(dropdown => {
-          dropdown.disabled = false;
-        });
-        
-        // Enable custom dropdowns by removing any disabled attributes
-        customDropdowns.forEach(dropdown => {
-          if (dropdown instanceof HTMLElement) {
-            dropdown.removeAttribute('disabled');
-            dropdown.setAttribute('aria-disabled', 'false');
-          }
-        });
-        
-        console.log(`Enabled ${selectElements.length} select elements and ${customDropdowns.length} custom dropdowns`);
-      }, 1000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [isInitialized]);
-
-  // Listen for settings dialog open requests
-  useEffect(() => {
-    const unsubscribeSettings = window.electronAPI.onShowSettings(() => {
-      console.log("Show settings dialog requested");
-      setIsSettingsOpen(true);
-    });
+    // Setup auth change listener
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log("Auth state changed:", event);
+        if (event === "SIGNED_IN" || event === "USER_UPDATED") {
+          setUser(session?.user || null);
+          setIsFirstVisit(false);
+          setShowAuthPage(false);
+        } else if (event === "SIGNED_OUT") {
+          setUser(null);
+          setIsFirstVisit(true);
+        }
+      }
+    );
+    
+    checkSession();
     
     return () => {
-      unsubscribeSettings();
+      authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [isInitialized]);
 
   // Initialize basic app state
   useEffect(() => {
@@ -165,9 +161,6 @@ function App() {
           updateLanguage("python")
         }
         
-        // Model settings are now managed through the settings dialog
-        // and stored in config as extractionModel, solutionModel, and debuggingModel
-        
         markInitialized()
       } catch (error) {
         console.error("Failed to initialize app:", error)
@@ -186,7 +179,7 @@ function App() {
         "Your OpenAI API key appears to be invalid or has insufficient credits",
         "error"
       )
-      setApiKeyDialogOpen(true)
+      setIsSettingsOpen(true)
     }
 
     // Setup API key invalid listener
@@ -200,10 +193,17 @@ function App() {
       }
     )
 
+    // Listen for settings dialog open requests
+    const unsubscribeSettings = window.electronAPI.onShowSettings(() => {
+      console.log("Show settings dialog requested");
+      setIsSettingsOpen(true);
+    });
+    
     // Cleanup function
     return () => {
       window.electronAPI.removeListener("API_KEY_INVALID", onApiKeyInvalid)
       unsubscribeSolutionSuccess()
+      unsubscribeSettings()
       window.__IS_INITIALIZED__ = false
       setIsInitialized(false)
     }
@@ -236,20 +236,35 @@ function App() {
     }
   }, [showToast])
 
+  // Handle authentication flow
+  const handleGetStarted = useCallback(() => {
+    setShowAuthPage(true);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
         <ToastContext.Provider value={{ showToast }}>
           <div className="relative">
             {isInitialized ? (
-              hasApiKey ? (
-                <SubscribedApp
-                  credits={credits}
-                  currentLanguage={currentLanguage}
-                  setLanguage={updateLanguage}
-                />
+              user ? (
+                hasApiKey ? (
+                  <SubscribedApp
+                    credits={credits}
+                    currentLanguage={currentLanguage}
+                    setLanguage={updateLanguage}
+                  />
+                ) : (
+                  <WelcomeScreen onGetStarted={handleOpenSettings} />
+                )
               ) : (
-                <WelcomeScreen onOpenSettings={handleOpenSettings} />
+                showAuthPage ? (
+                  <AuthPage onAuthSuccess={function (): void {
+                      throw new Error("Function not implemented.")
+                    } } />
+                ) : (
+                  <WelcomeScreen onGetStarted={handleGetStarted} />
+                )
               )
             ) : (
               <div className="min-h-screen bg-black flex items-center justify-center">

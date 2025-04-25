@@ -39,17 +39,21 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
 
   const handleSignOut = async () => {
     try {
+      // Call Supabase sign out
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+  
       // Clear any local storage or electron-specific data
       localStorage.clear();
       sessionStorage.clear();
-
+  
       // Clear the API key in the configuration
       await window.electronAPI.updateConfig({
         apiKey: '',
       });
-
+  
       showToast('Success', 'Logged out successfully', 'success');
-
+  
       // Reload the app after a short delay
       setTimeout(() => {
         window.location.reload();
@@ -58,7 +62,7 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
       console.error("Error logging out:", err);
       showToast('Error', 'Failed to log out', 'error');
     }
-  }
+  };
 
   const handleMouseEnter = () => {
     setIsTooltipVisible(true)
