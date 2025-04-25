@@ -5,6 +5,7 @@ import { useToast } from "../../contexts/toast"
 import { LanguageSelector } from "../shared/LanguageSelector"
 import { COMMAND_KEY } from "../../utils/platform"
 import { supabase } from "../../lib/supabase"
+import { User } from "@supabase/supabase-js"
 
 interface QueueCommandsProps {
   onTooltipVisibilityChange: (visible: boolean, height: number) => void
@@ -12,6 +13,7 @@ interface QueueCommandsProps {
   credits: number
   currentLanguage: string
   setLanguage: (language: string) => void
+  user: User  // New prop
 }
 
 const QueueCommands: React.FC<QueueCommandsProps> = ({
@@ -19,11 +21,28 @@ const QueueCommands: React.FC<QueueCommandsProps> = ({
   screenshotCount = 0,
   credits,
   currentLanguage,
-  setLanguage
+  setLanguage,
+  user
 }) => {
   const [isTooltipVisible, setIsTooltipVisible] = useState(false)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const { showToast } = useToast()
+
+  // Extract user's first name for profile display
+  const getUserFullName = () => {
+    if (user?.user_metadata?.full_name) {
+      return user.user_metadata.full_name;
+    }
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    return "User";
+  };
+
+  const getInitial = () => {
+    const name = getUserFullName();
+    return name.charAt(0).toUpperCase();
+  };
 
   // Extract the repeated language selection logic into a separate function
   const extractLanguagesAndUpdate = (direction?: 'next' | 'prev') => {
@@ -579,15 +598,25 @@ const QueueCommands: React.FC<QueueCommandsProps> = ({
                     {/* Separator */}
                     <div className="h-px w-full bg-white/10" />
 
-                    {/* Sign Out Button */}
+                    {/* User Profile with Sign Out */}
                     <div
-                      className="cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
-                      onClick={handleSignOut}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-red-400">Sign Out</span>
+                        className="flex items-center justify-between gap-4 cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors w-full"
+                        onClick={handleSignOut}
+                        title="Click to sign out"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-medium">
+                            {getInitial()}
+                          </div>
+                          <span className="text-[11px] leading-none truncate max-w-[80px]">
+                            {getUserFullName()}
+                          </span>
+                        </div>
+                        <span className="text-[11px] leading-none text-red-400">
+                          Sign Out 
+                        </span>
                       </div>
-                    </div>
+
                   </div>
                 </div>
               </div>

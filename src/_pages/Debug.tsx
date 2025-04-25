@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm"
 import remarkMath from "remark-math"
 import rehypeKatex from "rehype-katex"
 import 'katex/dist/katex.min.css'
+import { User } from "@supabase/supabase-js"
 
 import ScreenshotQueue from "../components/Queue/ScreenshotQueue"
 import SolutionCommands from "../components/Solutions/SolutionCommands"
@@ -48,13 +49,15 @@ interface DebugProps {
   setIsProcessing: (isProcessing: boolean) => void
   currentLanguage: string
   setLanguage: (language: string) => void
+  user: User  // New prop
 }
 
 const Debug: React.FC<DebugProps> = ({
   isProcessing,
   setIsProcessing,
   currentLanguage,
-  setLanguage
+  setLanguage,
+  user
 }) => {
   const [tooltipVisible, setTooltipVisible] = useState(false)
   const [tooltipHeight, setTooltipHeight] = useState(0)
@@ -253,6 +256,7 @@ const Debug: React.FC<DebugProps> = ({
         credits={window.__CREDITS__}
         currentLanguage={currentLanguage}
         setLanguage={setLanguage}
+        user={user}
       />
 
       {/* Main Content - New Layout Structure */}

@@ -4,6 +4,7 @@ import { Screenshot } from "../../types/screenshots"
 import { supabase } from "../../lib/supabase"
 import { LanguageSelector } from "../shared/LanguageSelector"
 import { COMMAND_KEY } from "../../utils/platform"
+import { User } from "@supabase/supabase-js"
 
 export interface SolutionCommandsProps {
   onTooltipVisibilityChange: (visible: boolean, height: number) => void
@@ -13,6 +14,7 @@ export interface SolutionCommandsProps {
   credits: number
   currentLanguage: string
   setLanguage: (language: string) => void
+  user: User  // New prop 
 }
 
 const SolutionCommands: React.FC<SolutionCommandsProps> = ({
@@ -21,11 +23,28 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
   extraScreenshots = [],
   credits,
   currentLanguage,
-  setLanguage
+  setLanguage,
+  user
 }) => {
   const [isTooltipVisible, setIsTooltipVisible] = useState(false)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const { showToast } = useToast()
+
+  // Extract user's first name for profile display 
+  const getUserFullName = () => {
+    if (user?.user_metadata?.full_name) {
+      return user.user_metadata.full_name;
+    }
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    return "User";
+  };
+
+  const getInitial = () => {
+    const name = getUserFullName();
+    return name.charAt(0).toUpperCase();
+  };
 
   useEffect(() => {
     if (onTooltipVisibilityChange) {
@@ -42,18 +61,18 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
       // Call Supabase sign out
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-  
+
       // Clear any local storage or electron-specific data
       localStorage.clear();
       sessionStorage.clear();
-  
+
       // Clear the API key in the configuration
       await window.electronAPI.updateConfig({
         apiKey: '',
       });
-  
+
       showToast('Success', 'Logged out successfully', 'success');
-  
+
       // Reload the app after a short delay
       setTimeout(() => {
         window.location.reload();
@@ -240,8 +259,6 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
             </div>
           </div>
 
-          {/* Separator */}
-          <div className="mx-2 h-4 w-px bg-white/20" />
 
           {/* Settings with Tooltip */}
           <div
@@ -509,14 +526,23 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
                       {/* Separator */}
                       <div className="h-px w-full bg-white/10" />
 
-                      {/* Sign Out Button */}
+                      {/* User Profile with Sign Out */}
                       <div
-                        className="cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
+                        className="flex items-center justify-between gap-4 cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors w-full"
                         onClick={handleSignOut}
+                        title="Click to sign out"
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="text-red-400">Sign Out</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-medium">
+                            {getInitial()}
+                          </div>
+                          <span className="text-[11px] leading-none truncate max-w-[80px]">
+                            {getUserFullName()}
+                          </span>
                         </div>
+                        <span className="text-[11px] leading-none text-red-400">
+                          Sign Out
+                        </span>
                       </div>
                     </div>
                   </div>

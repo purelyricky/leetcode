@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from "react"
 import { useQuery } from "@tanstack/react-query"
 import ScreenshotQueue from "../components/Queue/ScreenshotQueue"
 import QueueCommands from "../components/Queue/QueueCommands"
-
 import { useToast } from "../contexts/toast"
 import { Screenshot } from "../types/screenshots"
+import { User } from "@supabase/supabase-js"
 
 async function fetchScreenshots(): Promise<Screenshot[]> {
   try {
@@ -21,13 +21,17 @@ interface QueueProps {
   credits: number
   currentLanguage: string
   setLanguage: (language: string) => void
+  hasApiKey: boolean  // New prop
+  user: User  // New prop
 }
 
 const Queue: React.FC<QueueProps> = ({
   setView,
   credits,
   currentLanguage,
-  setLanguage
+  setLanguage,
+  hasApiKey,
+  user
 }) => {
   const { showToast } = useToast()
 
@@ -139,6 +143,15 @@ const Queue: React.FC<QueueProps> = ({
   return (
     <div ref={contentRef} className={`bg-transparent w-1/2`}>
       <div className="px-4 py-3">
+        {/* API Key Warning Message */}
+        {!hasApiKey && (
+          <div className="mb-4 p-3 bg-amber-500/20 border border-amber-500/30 rounded-md">
+            <p className="text-sm text-amber-400">
+              You have no API Key saved, please add one from settings
+            </p>
+          </div>
+        )}
+        
         <div className="space-y-3 w-fit">
           <ScreenshotQueue
             isLoading={false}
@@ -152,6 +165,7 @@ const Queue: React.FC<QueueProps> = ({
             credits={credits}
             currentLanguage={currentLanguage}
             setLanguage={setLanguage}
+            user={user}
           />
         </div>
       </div>

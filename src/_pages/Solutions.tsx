@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm"
 import remarkMath from "remark-math"
 import rehypeKatex from "rehype-katex"
 import 'katex/dist/katex.min.css'
+import { User } from "@supabase/supabase-js"
 
 import ScreenshotQueue from "../components/Queue/ScreenshotQueue"
 import SolutionCommands from "../components/Solutions/SolutionCommands"
@@ -27,6 +28,8 @@ export interface SolutionsProps {
   credits: number
   currentLanguage: string
   setLanguage: (language: string) => void
+  hasApiKey: boolean  // New prop
+  user: User  // New prop
 }
 
 // Interface for structured educational solution
@@ -35,7 +38,7 @@ interface EducationalSolution {
   inputs_outputs_constraints: string;
   edge_cases: string;
   pattern_recognition: string;
-  approaches: string; 
+  approaches: string;
   pseudocode: string;
   code: string;
   complexity: {
@@ -51,7 +54,9 @@ const Solutions: React.FC<SolutionsProps> = ({
   setView,
   credits,
   currentLanguage,
-  setLanguage
+  setLanguage,
+  hasApiKey,
+  user
 }) => {
   const queryClient = useQueryClient()
   const contentRef = useRef<HTMLDivElement>(null)
@@ -190,11 +195,11 @@ const Solutions: React.FC<SolutionsProps> = ({
           return
         }
         console.log("Solution data received:", data)
-        
+
         // Store solution data in query cache
         queryClient.setQueryData(["solution"], data)
         setSolutionData(data)
-        
+
         // Always start with the first section active
         setActiveSection("problem_restatement")
 
@@ -290,7 +295,7 @@ const Solutions: React.FC<SolutionsProps> = ({
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
         components={{
-          code({node, inline, className, children, ...props}) {
+          code({ node, inline, className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || '')
             return !inline && match ? (
               <SyntaxHighlighter
@@ -372,147 +377,158 @@ const Solutions: React.FC<SolutionsProps> = ({
           setIsProcessing={setDebugProcessing}
           currentLanguage={currentLanguage}
           setLanguage={setLanguage}
+          user={user}  // Pass user to Debug component
         />
       ) : (
         <div ref={contentRef} className="relative">
           <div className="space-y-3 px-4 py-3">
-          {/* Conditionally render the screenshot queue if solutionData is available */}
-          {solutionData && (
-            <div className="bg-transparent w-fit">
-              <div className="pb-3">
-                <div className="space-y-3 w-fit">
-                  <ScreenshotQueue
-                    isLoading={debugProcessing}
-                    screenshots={extraScreenshots}
-                    onDeleteScreenshot={handleDeleteExtraScreenshot}
-                  />
+
+            {/* API Key Warning Message */}
+            {!hasApiKey && (
+              <div className="mb-4 p-3 bg-amber-500/20 border border-amber-500/30 rounded-md">
+                <p className="text-sm text-amber-400">
+                  You have no API Key saved, please add one from settings
+                </p>
+              </div>
+            )}
+
+            {/* Conditionally render the screenshot queue if solutionData is available */}
+            {solutionData && (
+              <div className="bg-transparent w-fit">
+                <div className="pb-3">
+                  <div className="space-y-3 w-fit">
+                    <ScreenshotQueue
+                      isLoading={debugProcessing}
+                      screenshots={extraScreenshots}
+                      onDeleteScreenshot={handleDeleteExtraScreenshot}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Navbar of commands with the SolutionsHelper */}
-          <SolutionCommands
-            onTooltipVisibilityChange={handleTooltipVisibilityChange}
-            isProcessing={!problemInfo || !solutionData}
-            extraScreenshots={extraScreenshots}
-            credits={credits}
-            currentLanguage={currentLanguage}
-            setLanguage={setLanguage}
-          />
+            {/* Navbar of commands with the SolutionsHelper */}
+            <SolutionCommands
+              onTooltipVisibilityChange={handleTooltipVisibilityChange}
+              isProcessing={!problemInfo || !solutionData}
+              extraScreenshots={extraScreenshots}
+              credits={credits}
+              currentLanguage={currentLanguage}
+              setLanguage={setLanguage}
+              user={user}
+            />
 
-          {/* Main Content - New Layout Structure */}
-          <div className="w-full text-sm text-black bg-black/60 rounded-md">
-            <div className="rounded-lg overflow-hidden">
-              {!solutionData && (
-                <div className="px-4 py-3 space-y-4 max-w-full">
-                  <div className="space-y-2">
-                    <h2 className="text-[13px] font-medium text-white tracking-wide">
-                      Problem Statement
-                    </h2>
-                    {!problemInfo ? (
+            {/* Main Content - New Layout Structure */}
+            <div className="w-full text-sm text-black bg-black/60 rounded-md">
+              <div className="rounded-lg overflow-hidden">
+                {!solutionData && (
+                  <div className="px-4 py-3 space-y-4 max-w-full">
+                    <div className="space-y-2">
+                      <h2 className="text-[13px] font-medium text-white tracking-wide">
+                        Problem Statement
+                      </h2>
+                      {!problemInfo ? (
+                        <div className="mt-4 flex">
+                          <p className="text-xs bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 bg-clip-text text-transparent animate-pulse">
+                            Extracting problem statement...
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="text-[13px] leading-[1.4] text-gray-100 max-w-[600px]">
+                          {problemInfo.problem_statement}
+                        </div>
+                      )}
+                    </div>
+
+                    {problemInfo && (
                       <div className="mt-4 flex">
                         <p className="text-xs bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 bg-clip-text text-transparent animate-pulse">
-                          Extracting problem statement...
+                          Generating educational solution...
                         </p>
-                      </div>
-                    ) : (
-                      <div className="text-[13px] leading-[1.4] text-gray-100 max-w-[600px]">
-                        {problemInfo.problem_statement}
                       </div>
                     )}
                   </div>
-                  
-                  {problemInfo && (
-                    <div className="mt-4 flex">
-                      <p className="text-xs bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 bg-clip-text text-transparent animate-pulse">
-                        Generating educational solution...
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
+                )}
 
-              {solutionData && (
-                <div className="flex flex-row">
-                  {/* Sidebar with section links */}
-                  <SolutionSidebar>
-                    {sections.map(section => (
-                      <button
-                        key={section.id}
-                        className={`w-full text-left px-4 py-2 text-sm ${
-                          activeSection === section.id
-                            ? "bg-white/10 text-white font-medium"
-                            : "text-white/70 hover:bg-white/5 hover:text-white/90"
-                        }`}
-                        onClick={() => setActiveSection(section.id)}
+                {solutionData && (
+                  <div className="flex flex-row">
+                    {/* Sidebar with section links */}
+                    <SolutionSidebar>
+                      {sections.map(section => (
+                        <button
+                          key={section.id}
+                          className={`w-full text-left px-4 py-2 text-sm ${activeSection === section.id
+                              ? "bg-white/10 text-white font-medium"
+                              : "text-white/70 hover:bg-white/5 hover:text-white/90"
+                            }`}
+                          onClick={() => setActiveSection(section.id)}
+                        >
+                          {section.title}
+                        </button>
+                      ))}
+                    </SolutionSidebar>
+
+                    {/* Main content area */}
+                    <SolutionContent>
+                      <SolutionSection
+                        title={sections.find(s => s.id === activeSection)?.title || ""}
                       >
-                        {section.title}
-                      </button>
-                    ))}
-                  </SolutionSidebar>
-
-                  {/* Main content area */}
-                  <SolutionContent>
-                    <SolutionSection
-                      title={sections.find(s => s.id === activeSection)?.title || ""}
-                    >
-                      {activeSection === "code" ? (
-                        <div className="relative">
-                          <button
-                            onClick={() => {
-                              if (solutionData?.code) {
-                                navigator.clipboard.writeText(solutionData.code)
-                                  .then(() => {
-                                    showToast(
-                                      "Copied to clipboard",
-                                      "Try to manually type next time 🙁... It helps🫵",
-                                      "neutral"
-                                    );
-                                  })
-                                  .catch(err => {
-                                    console.error("Failed to copy: ", err);
-                                    showToast("Error", "Failed to copy code", "error");
-                                  });
-                              }
-                            }}
-                            className="absolute top-2 right-2 bg-white/10 hover:bg-white/20 text-white/80 hover:text-white p-1.5 rounded-md z-10 transition-colors"
-                            title="Copy code"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                          </button>
-                          <SyntaxHighlighter
-                            showLineNumbers
-                            language={currentLanguage === "golang" ? "go" : currentLanguage}
-                            style={dracula}
-                            customStyle={{
-                              maxWidth: "100%",
-                              margin: 0,
-                              padding: "1rem",
-                              backgroundColor: "rgba(22, 27, 34, 0.5)",
-                              borderRadius: "4px"
-                            }}
-                            wrapLongLines={true}
-                          >
-                            {getActiveContent()}
-                          </SyntaxHighlighter>
-                        </div>
-                      ) : (
-                        <div className="prose prose-invert prose-sm max-w-none">
-                          {renderMarkdown(getActiveContent())}
-                        </div>
-                      )}
-                    </SolutionSection>
-                  </SolutionContent>
-                </div>
-              )}
+                        {activeSection === "code" ? (
+                          <div className="relative">
+                            <button
+                              onClick={() => {
+                                if (solutionData?.code) {
+                                  navigator.clipboard.writeText(solutionData.code)
+                                    .then(() => {
+                                      showToast(
+                                        "Copied to clipboard",
+                                        "Try to manually type next time 🙁... It helps🫵",
+                                        "neutral"
+                                      );
+                                    })
+                                    .catch(err => {
+                                      console.error("Failed to copy: ", err);
+                                      showToast("Error", "Failed to copy code", "error");
+                                    });
+                                }
+                              }}
+                              className="absolute top-2 right-2 bg-white/10 hover:bg-white/20 text-white/80 hover:text-white p-1.5 rounded-md z-10 transition-colors"
+                              title="Copy code"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                              </svg>
+                            </button>
+                            <SyntaxHighlighter
+                              showLineNumbers
+                              language={currentLanguage === "golang" ? "go" : currentLanguage}
+                              style={dracula}
+                              customStyle={{
+                                maxWidth: "100%",
+                                margin: 0,
+                                padding: "1rem",
+                                backgroundColor: "rgba(22, 27, 34, 0.5)",
+                                borderRadius: "4px"
+                              }}
+                              wrapLongLines={true}
+                            >
+                              {getActiveContent()}
+                            </SyntaxHighlighter>
+                          </div>
+                        ) : (
+                          <div className="prose prose-invert prose-sm max-w-none">
+                            {renderMarkdown(getActiveContent())}
+                          </div>
+                        )}
+                      </SolutionSection>
+                    </SolutionContent>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
       )}
     </>
   )

@@ -313,7 +313,7 @@ async function createWindow(): Promise<void> {
   })
 
   // Enhanced screen capture resistance
-  state.mainWindow.setContentProtection(true)
+  state.mainWindow.setContentProtection(false) // Disable content protection A VERY IMPORTANT LINE OF CODE
 
   state.mainWindow.setVisibleOnAllWorkspaces(true, {
     visibleOnFullScreen: true
@@ -417,7 +417,7 @@ function showMainWindow(): void {
     state.mainWindow.setVisibleOnAllWorkspaces(true, {
       visibleOnFullScreen: true
     });
-    state.mainWindow.setContentProtection(true);
+    state.mainWindow.setContentProtection(false);  //A VERY IMPORTANT LINE OF CODE
     state.mainWindow.setOpacity(0); // Set opacity to 0 before showing
     state.mainWindow.showInactive(); // Use showInactive instead of show+focus
     state.mainWindow.setOpacity(1); // Then set opacity to 1 after showing

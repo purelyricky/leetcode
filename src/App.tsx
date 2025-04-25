@@ -109,9 +109,10 @@ function App() {
           const hasKey = await window.electronAPI.checkApiKey();
           setHasApiKey(hasKey);
           
-          if (!hasKey) {
-            setIsSettingsOpen(true);
-          }
+          // Removing this condition as requested
+          // if (!hasKey) {
+          //   setIsSettingsOpen(true);
+          // }
         } else {
           // No user found
           setUser(null);
@@ -248,20 +249,19 @@ function App() {
           <div className="relative">
             {isInitialized ? (
               user ? (
-                hasApiKey ? (
-                  <SubscribedApp
-                    credits={credits}
-                    currentLanguage={currentLanguage}
-                    setLanguage={updateLanguage}
-                  />
-                ) : (
-                  <WelcomeScreen onGetStarted={handleOpenSettings} />
-                )
+                <SubscribedApp
+                  credits={credits}
+                  currentLanguage={currentLanguage}
+                  setLanguage={updateLanguage}
+                  hasApiKey={hasApiKey}
+                  user={user}
+                />
               ) : (
                 showAuthPage ? (
-                  <AuthPage onAuthSuccess={function (): void {
-                      throw new Error("Function not implemented.")
-                    } } />
+                  <AuthPage onAuthSuccess={() => {
+                    // This function will be called after successful authentication
+                    // No need to do anything here as the auth state listener will handle it
+                  }} />
                 ) : (
                   <WelcomeScreen onGetStarted={handleGetStarted} />
                 )

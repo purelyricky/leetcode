@@ -4,17 +4,22 @@ import { useEffect, useRef, useState } from "react"
 import Queue from "../_pages/Queue"
 import Solutions from "../_pages/Solutions"
 import { useToast } from "../contexts/toast"
+import { User } from "@supabase/supabase-js"
 
 interface SubscribedAppProps {
   credits: number
   currentLanguage: string
   setLanguage: (language: string) => void
+  hasApiKey: boolean  // New prop
+  user: User  // New prop
 }
 
 const SubscribedApp: React.FC<SubscribedAppProps> = ({
   credits,
   currentLanguage,
-  setLanguage
+  setLanguage,
+  hasApiKey,
+  user
 }) => {
   const queryClient = useQueryClient()
   const [view, setView] = useState<"queue" | "solutions" | "debug">("queue")
@@ -142,6 +147,8 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
           credits={credits}
           currentLanguage={currentLanguage}
           setLanguage={setLanguage}
+          hasApiKey={hasApiKey}
+          user={user}
         />
       ) : view === "solutions" ? (
         <Solutions
@@ -149,6 +156,8 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
           credits={credits}
           currentLanguage={currentLanguage}
           setLanguage={setLanguage}
+          hasApiKey={hasApiKey}
+          user={user}
         />
       ) : null}
     </div>
