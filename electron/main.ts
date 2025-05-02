@@ -211,10 +211,10 @@ async function createWindow(): Promise<void> {
   state.currentY = 50
 
   const windowSettings: Electron.BrowserWindowConstructorOptions = {
-    width: 1000,
+    width: 990,
     height: 700,
     minWidth: 800,
-    minHeight: 660,
+    minHeight: 600,
     x: state.currentX,
     y: 50,
     alwaysOnTop: true,

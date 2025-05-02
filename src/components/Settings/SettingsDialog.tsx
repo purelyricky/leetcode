@@ -18,7 +18,9 @@ import {
   MessageSquare, 
   ArrowRight, 
   ExternalLink, 
-  AlertCircle 
+  AlertCircle,
+  Copy,
+  ClipboardCheck
 } from "lucide-react";
 
 type APIProvider = "openai" | "gemini" | "anthropic";
@@ -38,7 +40,8 @@ export function SettingsDialog({ open: externalOpen, onOpenChange }: SettingsDia
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'api' | 'models' | 'shortcuts'>('api');
   const { showToast } = useToast();
-
+  const [copiedLinks, setCopiedLinks] = useState<{[key: string]: boolean}>({});
+  
   // Sync with external open state
   useEffect(() => {
     if (externalOpen !== undefined) {
@@ -135,6 +138,24 @@ export function SettingsDialog({ open: externalOpen, onOpenChange }: SettingsDia
   // Open external link handler
   const openExternalLink = (url: string) => {
     window.electronAPI.openLink(url);
+  };
+
+  // Copy link to clipboard
+  const copyLinkToClipboard = (url: string) => {
+    navigator.clipboard.writeText(url).then(() => {
+      // Set this specific link as copied
+      setCopiedLinks(prev => ({...prev, [url]: true}));
+      
+      // Reset copied status after 2 seconds
+      setTimeout(() => {
+        setCopiedLinks(prev => ({...prev, [url]: false}));
+      }, 2000);
+      
+      showToast("Success", "Link copied to clipboard", "success");
+    }).catch(err => {
+      console.error("Failed to copy link:", err);
+      showToast("Error", "Failed to copy link", "error");
+    });
   };
 
   return (
@@ -281,10 +302,14 @@ export function SettingsDialog({ open: externalOpen, onOpenChange }: SettingsDia
                           {step.link && (
                             <button 
                               className="ml-1 text-amber-400 hover:underline flex items-center gap-0.5"
-                              onClick={() => openExternalLink(step.link!)}
+                              onClick={() => copyLinkToClipboard(step.link!)}
                             >
                               {step.linkText}
-                              <ExternalLink className="w-3 h-3" />
+                              {copiedLinks[step.link] ? (
+                                <ClipboardCheck className="w-3 h-3 text-green-400" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
                             </button>
                           )}
                         </div>
@@ -508,21 +533,24 @@ const ModelCard = ({ model, isSelected, onSelect }: {
 function getApiInstructionsForProvider(provider: APIProvider) {
   if (provider === "openai") {
     return [
-      { text: "Create an account at", link: "https://platform.openai.com/signup", linkText: "OpenAI" },
-      { text: "Go to API Keys section in", link: "https://platform.openai.com/api-keys", linkText: "your dashboard" },
-      { text: "Click 'Create new secret key' and copy it" }
+      { text: "Create an account at", link: "https://platform.openai.com/signup", linkText: "OpenAI (copy link)" },
+      { text: "Navigate to", link: "https://platform.openai.com/api-keys", linkText: "API Keys (copy link)" },
+      { text: "Click 'Create new secret key' and copy the generated key" },
+      { text: "Paste the key in the field above and click Save" }
     ];
   } else if (provider === "gemini") {
     return [
-      { text: "Create an account at", link: "https://aistudio.google.com/", linkText: "Google AI Studio" },
-      { text: "Navigate to", link: "https://aistudio.google.com/app/apikey", linkText: "API Keys" },
-      { text: "Generate a new API key and copy it" }
+      { text: "Create a Google AI Studio account at", link: "https://aistudio.google.com/", linkText: "Google AI Studio (copy link)" },
+      { text: "Navigate to", link: "https://aistudio.google.com/app/apikey", linkText: "API Keys (copy link)" },
+      { text: "Click 'Create API key' and copy the generated key" },
+      { text: "Paste the key in the field above and click Save" }
     ];
   } else {
     return [
-      { text: "Create an account at", link: "https://console.anthropic.com/signup", linkText: "Anthropic" },
-      { text: "Go to", link: "https://console.anthropic.com/settings/keys", linkText: "API Keys" },
-      { text: "Create a new API key and copy it here" }
+      { text: "Create an Anthropic account at", link: "https://console.anthropic.com/", linkText: "Anthropic Console (copy link)" },
+      { text: "Navigate to", link: "https://console.anthropic.com/settings/keys", linkText: "API Keys (copy link)" },
+      { text: "Click 'Create key' and copy the generated key" },
+      { text: "Paste the key in the field above and click Save" }
     ];
   }
 }

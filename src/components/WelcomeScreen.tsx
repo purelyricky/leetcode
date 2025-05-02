@@ -1,15 +1,50 @@
 import React from 'react';
 import { Button } from './ui/button';
-import { Code, KeyRound, MousePointerClick, Keyboard } from 'lucide-react';
+import { Code, KeyRound, MousePointerClick, Keyboard, Minus, X } from 'lucide-react';
 
 interface WelcomeScreenProps {
   onGetStarted: () => void;
 }
 
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted }) => {
+  // Functions to handle minimize and close actions
+  const handleMinimize = () => {
+    if (window.electronAPI && typeof window.electronAPI.minimizeWindow === 'function') {
+      window.electronAPI.minimizeWindow();
+    } else {
+      console.error('Minimize window function is not available');
+    }
+  };
+
+  const handleClose = () => {
+    if (window.electronAPI && typeof window.electronAPI.closeWindow === 'function') {
+      window.electronAPI.closeWindow();
+    } else {
+      console.error('Close window function is not available');
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6">
-      <div className="max-w-md w-full bg-[#0A0A0A] border border-amber-500/10 rounded-xl p-6 shadow-lg">
+    <div className="h-[660px] w-[500px] mx-auto bg-black flex flex-col items-center justify-center p-6 rounded-3xl relative">
+      {/* Window control buttons */}
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        <button 
+          onClick={handleMinimize}
+          className="w-6 h-6 rounded-full bg-amber-500/20 hover:bg-amber-500/40 flex items-center justify-center transition-colors"
+          aria-label="Minimize"
+        >
+          <Minus className="w-3 h-3 text-amber-500" />
+        </button>
+        <button 
+          onClick={handleClose}
+          className="w-6 h-6 rounded-full bg-red-500/20 hover:bg-red-500/40 flex items-center justify-center transition-colors"
+          aria-label="Close"
+        >
+          <X className="w-3 h-3 text-red-500" />
+        </button>
+      </div>
+      
+      <div className="max-w-md w-full bg-[#0A0A0A] border border-amber-500/10 rounded-2xl p-6 shadow-lg">
         <div className="flex items-center gap-3 mb-5">
           <div className="bg-amber-500 w-10 h-10 rounded-lg flex items-center justify-center">
             <Code className="w-6 h-6 text-black" />

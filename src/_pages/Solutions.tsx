@@ -321,7 +321,7 @@ const Solutions: React.FC<SolutionsProps> = ({
 
   // Define the sections with their display titles
   const sections = [
-    { id: "problem_restatement", title: "1. Problem Restatement" },
+    { id: "problem_restatement", title: "1. Problem Restatement & Thinking Process" },
     { id: "inputs_outputs_constraints", title: "2. Inputs, Outputs & Constraints" },
     { id: "edge_cases", title: "3. Edge Cases" },
     { id: "pattern_recognition", title: "4. Pattern Recognition" },
@@ -385,8 +385,8 @@ const Solutions: React.FC<SolutionsProps> = ({
 
             {/* API Key Warning Message */}
             {!hasApiKey && (
-              <div className="mb-4 p-3 bg-amber-500/20 border border-amber-500/30 rounded-md">
-                <p className="text-sm text-amber-400">
+              <div className="mb-4 p-3 bg-amber-500 border border-amber-500/30 rounded-md">
+                <p className="text-sm text-black-900">
                   You have no API Key saved, please add one from settings
                 </p>
               </div>
@@ -458,8 +458,8 @@ const Solutions: React.FC<SolutionsProps> = ({
                         <button
                           key={section.id}
                           className={`w-full text-left px-4 py-2 text-sm ${activeSection === section.id
-                              ? "bg-white/10 text-white font-medium"
-                              : "text-white/70 hover:bg-white/5 hover:text-white/90"
+                            ? "bg-white/10 text-white font-medium"
+                            : "text-white/70 hover:bg-white/5 hover:text-white/90"
                             }`}
                           onClick={() => setActiveSection(section.id)}
                         >

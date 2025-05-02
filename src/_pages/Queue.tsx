@@ -142,11 +142,14 @@ const Queue: React.FC<QueueProps> = ({
   
   return (
     <div ref={contentRef} className={`bg-transparent w-1/2`}>
+      {/* Add a draggable region at the top */}
+    <div className="w-full h-4 draggable-region cursor-move" />
+    
       <div className="px-4 py-3">
         {/* API Key Warning Message */}
         {!hasApiKey && (
-          <div className="mb-4 p-3 bg-amber-500/20 border border-amber-500/30 rounded-md">
-            <p className="text-sm text-amber-400">
+          <div className="mb-4 p-3 bg-amber-500 border border-amber-500/30 rounded-md">
+            <p className="text-sm text-black-900">
               You have no API Key saved, please add one from settings
             </p>
           </div>

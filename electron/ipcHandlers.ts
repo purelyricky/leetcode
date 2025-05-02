@@ -358,4 +358,33 @@ export function initializeIpcHandlers(deps: IIpcHandlerDeps): void {
       return { error: "Failed to toggle click-through mode" }
     }
   })
+
+  // Window control handlers Added for the welcome window and the Auth pages
+  ipcMain.handle("minimize-window", () => {
+    try {
+      const mainWindow = deps.getMainWindow();
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.minimize();
+        return { success: true };
+      }
+      return { success: false, error: "Main window not available" };
+    } catch (error) {
+      console.error("Error minimizing window:", error);
+      return { success: false, error: "Failed to minimize window" };
+    }
+  });
+
+  ipcMain.handle("close-window", () => {
+    try {
+      const mainWindow = deps.getMainWindow();
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.close();
+        return { success: true };
+      }
+      return { success: false, error: "Main window not available" };
+    } catch (error) {
+      console.error("Error closing window:", error);
+      return { success: false, error: "Failed to close window" };
+    }
+  });
 }

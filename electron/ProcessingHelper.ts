@@ -772,8 +772,8 @@ LANGUAGE: ${language}
 
 Please structure your response with these exact 11 sections, with each having a clear heading and detailed content:
 
-## 1. Problem Restatement
-Restate the problem in your own words as clearly and concisely as possible.
+## 1. Problem Restatement & Thinking Process
+Restate the problem in your own words as clearly and concisely as possible Then Come up with a thinking process and plan the student should have to solve the question.
 
 ## 2. Inputs, Outputs & Constraints Extraction
 List and explain:
@@ -798,8 +798,8 @@ Translate the pseudocode into clean, well-commented ${language} code with descri
 
 ## 8. Complexity Analysis
 Analyze both time and space complexity of the final solution with detailed explanationsThat willl help the students understand how and why that is your answer. Format as:
-- Time Complexity: O(X) - explanation that will help the student understand the time complexity for that answer
-- Space Complexity: O(Y) - explanation that will help the student understand the space complexity for that answer
+- Time Complexity: O(X) - explanation that will help the student understand the time complexity for that answer specifying how it was calculated
+- Space Complexity: O(Y) - explanation that will help the student understand the space complexity for that answer specifying how it was calculated
 
 ## 9. Walk-Through on Example
 Choose a non-trivial example and walk through the solution step by step, showing how variables change.
@@ -808,7 +808,7 @@ Choose a non-trivial example and walk through the solution step by step, showing
 Provide a visual representation of key data structures or algorithm steps using markdown. If appropriate, include a diagram using mermaid or ASCII art, This diagram should be able to enhance and help the students understand better, throw some explanations.
 
 ## 11. Further Practice & Resources
-Suggest 2-3 similar problems that would reinforce understanding of this pattern, with brief explanations of how they relate.
+Suggest 2-3 similar problems that would reinforce understanding of this pattern, with brief explanations of how they relate, the questions should be complete with constraits, examples input and expected outputs.
 
 Make your explanations thorough but accessible - imagine you're teaching a student who is actively learning DSA. Use markdown formatting to make your explanation clear and readable, including code blocks, lists, and emphasis where appropriate.
 `;

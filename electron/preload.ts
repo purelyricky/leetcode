@@ -265,6 +265,30 @@ const electronAPI = {
       ipcRenderer.removeListener("click-through-disabled", subscription)
     }
   },
+  // Window control methods
+  minimizeWindow: async () => {
+    console.log("minimizeWindow called from preload");
+    try {
+      const result = await ipcRenderer.invoke("minimize-window");
+      console.log("minimize-window result:", result);
+      return result;
+    } catch (error) {
+      console.error("Error in minimizeWindow:", error);
+      throw error;
+    }
+  },
+  
+  closeWindow: async () => {
+    console.log("closeWindow called from preload");
+    try {
+      const result = await ipcRenderer.invoke("close-window");
+      console.log("close-window result:", result);
+      return result;
+    } catch (error) {
+      console.error("Error in closeWindow:", error);
+      throw error;
+    }
+  },
 }
 
 // Before exposing the API

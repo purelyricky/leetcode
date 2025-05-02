@@ -92,7 +92,7 @@ const Debug: React.FC<DebugProps> = ({
     const cleanupFunctions = [
       window.electronAPI.onScreenshotTaken(() => refetch()),
       window.electronAPI.onResetView(() => refetch()),
-      window.electronAPI.onDebugSuccess((data) => {
+      window.electronAPI.onDebugSuccess((data: unknown) => {
         console.log("Debug success event received with data:", data)
         queryClient.setQueryData(["new_solution"], data)
         

@@ -8,7 +8,7 @@ interface AuthLayoutProps {
 
 export const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitle }) => {
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-6">
+    <div className="bg-black flex items-center justify-center">
       <div className="max-w-md w-full bg-black/80 border border-amber-500/10 rounded-xl overflow-hidden shadow-xl">
         <div className="px-8 pt-8 pb-6">
           <h1 className="text-2xl font-bold text-white mb-1">{title}</h1>
