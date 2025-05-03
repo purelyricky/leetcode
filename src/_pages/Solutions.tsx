@@ -9,11 +9,15 @@ import remarkMath from "remark-math"
 import rehypeKatex from "rehype-katex"
 import 'katex/dist/katex.min.css'
 import { User } from "@supabase/supabase-js"
+import { CheckCircle, Loader2 } from "lucide-react"
 
 import ScreenshotQueue from "../components/Queue/ScreenshotQueue"
 import SolutionCommands from "../components/Solutions/SolutionCommands"
+import UserExplanation from "../components/Solutions/UserExplanation"
+import BlurredCodeSection from "../components/Solutions/BlurredCodeSection"
 import Debug from "./Debug"
 import { useToast } from "../contexts/toast"
+import { useUser } from "../contexts/userContext"
 import { COMMAND_KEY } from "../utils/platform"
 
 // Components for DSA Solution sections
@@ -28,8 +32,8 @@ export interface SolutionsProps {
   credits: number
   currentLanguage: string
   setLanguage: (language: string) => void
-  hasApiKey: boolean  // New prop
-  user: User  // New prop
+  hasApiKey: boolean
+  user: User
   showDahsboard: () => void
 }
 
@@ -51,21 +55,34 @@ interface EducationalSolution {
   further_practice: string;
 }
 
+// Flow steps
+type SolutionStep = 
+  | "extracting" 
+  | "user_explanation" 
+  | "generating_solution" 
+  | "solution_ready"
+  | "debug";
+
 const Solutions: React.FC<SolutionsProps> = ({
   setView,
   credits,
   currentLanguage,
   setLanguage,
   hasApiKey,
-  user
+  user,
+  showDahsboard
 }) => {
+  // Main state
   const queryClient = useQueryClient()
   const contentRef = useRef<HTMLDivElement>(null)
-
-  const [debugProcessing, setDebugProcessing] = useState(false)
+  const [currentStep, setCurrentStep] = useState<SolutionStep>("extracting")
   const [problemInfo, setProblemInfo] = useState<any>(null)
   const [solutionData, setSolutionData] = useState<EducationalSolution | null>(null)
   const [activeSection, setActiveSection] = useState<string>("problem_restatement")
+  const [debugProcessing, setDebugProcessing] = useState(false)
+  const [hasSubmittedExplanation, setHasSubmittedExplanation] = useState(false)
+  const [userExplanationText, setUserExplanationText] = useState("")
+  const [currentProblemId, setCurrentProblemId] = useState<string>("")
 
   // UI state
   const [isTooltipVisible, setIsTooltipVisible] = useState(false)
@@ -74,19 +91,52 @@ const Solutions: React.FC<SolutionsProps> = ({
   const [extraScreenshots, setExtraScreenshots] = useState<any[]>([])
 
   const { showToast } = useToast()
+  const { userProfile } = useUser()
 
   useEffect(() => {
     // Load problem statement and solution data from cache
-    setProblemInfo(queryClient.getQueryData(["problem_statement"]) || null)
-    setSolutionData(queryClient.getQueryData(["solution"]) || null)
+    const cachedProblemInfo = queryClient.getQueryData(["problem_statement"]);
+    if (cachedProblemInfo) {
+      setProblemInfo(cachedProblemInfo);
+      // If we already have problem info, move to user explanation step
+      if (currentStep === "extracting") {
+        setCurrentStep("user_explanation");
+      }
+    }
+
+    const cachedSolution = queryClient.getQueryData(["solution"]) as EducationalSolution | null;
+    if (cachedSolution) {
+      setSolutionData(cachedSolution);
+      // If we already have solution, move to solution ready step
+      if (currentStep === "generating_solution") {
+        setCurrentStep("solution_ready");
+      }
+    }
+
+    // Load debug solution if it exists
+    const debugSolution = queryClient.getQueryData(["new_solution"]);
+    if (debugSolution) {
+      setCurrentStep("debug");
+    }
 
     // Subscribe to query cache updates
     const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
       if (event?.query.queryKey[0] === "problem_statement") {
         setProblemInfo(queryClient.getQueryData(["problem_statement"]) || null)
+        // When problem statement is extracted, move to user explanation
+        if (currentStep === "extracting") {
+          setCurrentStep("user_explanation");
+        }
       }
       if (event?.query.queryKey[0] === "solution") {
         setSolutionData(queryClient.getQueryData(["solution"]) || null)
+        // When solution is generated, move to solution ready
+        if (currentStep === "generating_solution") {
+          setCurrentStep("solution_ready");
+        }
+      }
+      if (event?.query.queryKey[0] === "new_solution") {
+        setCurrentStep("debug");
       }
     })
 
@@ -109,7 +159,7 @@ const Solutions: React.FC<SolutionsProps> = ({
     fetchScreenshots()
 
     return () => unsubscribe()
-  }, [queryClient])
+  }, [queryClient, currentStep])
 
   // Set up window height updates and event listeners
   useEffect(() => {
@@ -156,6 +206,10 @@ const Solutions: React.FC<SolutionsProps> = ({
       window.electronAPI.onResetView(() => {
         // Set resetting state first
         setIsResetting(true)
+        setCurrentStep("extracting")
+        setHasSubmittedExplanation(false)
+        setUserExplanationText("")
+        setCurrentProblemId("")
 
         // Remove queries
         queryClient.removeQueries({
@@ -176,10 +230,13 @@ const Solutions: React.FC<SolutionsProps> = ({
       window.electronAPI.onSolutionStart(() => {
         // Reset states when processing starts
         setSolutionData(null)
+        setCurrentStep("extracting")
+        setHasSubmittedExplanation(false)
       }),
       window.electronAPI.onProblemExtracted((data) => {
         queryClient.setQueryData(["problem_statement"], data)
         setProblemInfo(data)
+        setCurrentStep("user_explanation")
       }),
       window.electronAPI.onSolutionError((error: string) => {
         showToast("Processing Failed", error, "error")
@@ -200,6 +257,9 @@ const Solutions: React.FC<SolutionsProps> = ({
         // Store solution data in query cache
         queryClient.setQueryData(["solution"], data)
         setSolutionData(data)
+        
+        // Update step state
+        setCurrentStep("solution_ready")
 
         // Always start with the first section active
         setActiveSection("problem_restatement")
@@ -230,6 +290,7 @@ const Solutions: React.FC<SolutionsProps> = ({
       window.electronAPI.onDebugSuccess((data) => {
         queryClient.setQueryData(["new_solution"], data)
         setDebugProcessing(false)
+        setCurrentStep("debug")
       }),
       window.electronAPI.onDebugError(() => {
         showToast(
@@ -288,6 +349,34 @@ const Solutions: React.FC<SolutionsProps> = ({
       showToast("Error", "Failed to delete the screenshot", "error")
     }
   }
+
+  // Handle user explanation completion
+  const handleExplanationComplete = (
+    explanationSubmitted: boolean, 
+    explanationText: string,
+    problemId: string
+  ) => {
+    setHasSubmittedExplanation(true);
+    setUserExplanationText(explanationText);
+    setCurrentProblemId(problemId);
+    
+    // Move to generating solution step
+    setCurrentStep("generating_solution");
+    
+    if (!explanationSubmitted) {
+      showToast(
+        "Skipping explanation", 
+        "Please try to provide your own solution next time, it helps your learning!",
+        "neutral"
+      );
+    } else {
+      showToast(
+        "Explanation submitted",
+        "Generating a personalized solution for you...",
+        "success"
+      );
+    }
+  };
 
   // Render the markdown content with syntax highlighting for code blocks
   const renderMarkdown = (content: string) => {
@@ -353,7 +442,7 @@ const Solutions: React.FC<SolutionsProps> = ({
       case "pseudocode":
         return solutionData.pseudocode || "No pseudocode available"
       case "code":
-        // For code, we'll return it directly to be handled by the code renderer
+        // For code, we'll return it directly to be handled by BlurredCodeSection
         return solutionData.code || "// No code solution available"
       case "complexity":
         const timeComplexity = solutionData.complexity?.time || "Not analyzed";
@@ -370,6 +459,164 @@ const Solutions: React.FC<SolutionsProps> = ({
     }
   }
 
+  // Render based on current step
+  const renderCurrentStep = () => {
+    // If debug view is active
+    if (currentStep === "debug") {
+      return (
+        <Debug
+          isProcessing={debugProcessing}
+          setIsProcessing={setDebugProcessing}
+          currentLanguage={currentLanguage}
+          setLanguage={setLanguage}
+          user={user}
+        />
+      );
+    }
+
+    // Extracting problem step
+    if (currentStep === "extracting") {
+      return (
+        <div className="px-4 py-3 space-y-4 max-w-full">
+          <div className="space-y-2">
+            <h2 className="text-[13px] font-medium text-white tracking-wide">
+              Problem Extraction
+            </h2>
+            <div className="flex items-center space-x-3 text-white/70">
+              <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
+              <p className="text-sm">Analyzing screenshots and extracting problem details...</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // User explanation step
+    if (currentStep === "user_explanation") {
+      return (
+        <div className="px-4 py-3 space-y-4 max-w-full">
+          {problemInfo && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <h2 className="text-[13px] font-medium text-white tracking-wide">
+                  Problem Statement
+                </h2>
+                <div className="text-[13px] leading-[1.4] text-gray-100 max-w-[600px] p-4 bg-black/40 rounded-md border border-white/10">
+                  {problemInfo.problem_statement}
+                </div>
+              </div>
+              
+              <UserExplanation
+                problemInfo={problemInfo}
+                onComplete={handleExplanationComplete}
+              />
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Generating solution step
+    if (currentStep === "generating_solution") {
+      return (
+        <div className="px-4 py-3 space-y-4 max-w-full">
+          <div className="space-y-2">
+            <h2 className="text-[13px] font-medium text-white tracking-wide mb-4">
+              Problem Statement
+            </h2>
+            {problemInfo && (
+              <div className="text-[13px] leading-[1.4] text-gray-100 max-w-[600px] p-4 bg-black/40 rounded-md border border-white/10 mb-8">
+                {problemInfo.problem_statement}
+              </div>
+            )}
+            
+            <div className="flex items-center space-x-3 text-white/70 bg-black/40 rounded-md p-4 border border-white/10">
+              <div className="flex flex-col items-center space-y-2">
+                <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
+                <CheckCircle className="w-6 h-6 text-green-500" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <p className="text-sm text-white/90">Problem extracted successfully</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {hasSubmittedExplanation ? (
+                    <>
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <p className="text-sm text-white/90">Your explanation recorded</p>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4 text-yellow-500" />
+                      <p className="text-sm text-white/90">Explanation skipped</p>
+                    </>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+                  <p className="text-sm">Generating educational solution...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Solution ready
+    if (currentStep === "solution_ready" && solutionData) {
+      return (
+        <div className="flex flex-row">
+          {/* Sidebar with section links */}
+          <SolutionSidebar>
+            {sections.map(section => (
+              <button
+                key={section.id}
+                className={`w-full text-left px-4 py-2 text-sm ${activeSection === section.id
+                  ? "bg-white/10 text-white font-medium"
+                  : "text-white/70 hover:bg-white/5 hover:text-white/90"
+                  }`}
+                onClick={() => setActiveSection(section.id)}
+              >
+                {section.title}
+              </button>
+            ))}
+          </SolutionSidebar>
+
+          {/* Main content area */}
+          <SolutionContent>
+            <SolutionSection
+              title={sections.find(s => s.id === activeSection)?.title || ""}
+            >
+              {activeSection === "code" ? (
+                <BlurredCodeSection
+                  code={solutionData.code}
+                  language={currentLanguage === "golang" ? "go" : currentLanguage}
+                  title="Complete Code Solution"
+                  sectionIndex={0}
+                  problemId={currentProblemId}
+                  hintType="code"
+                />
+              ) : (
+                <div className="prose prose-invert prose-sm max-w-none">
+                  {renderMarkdown(getActiveContent())}
+                </div>
+              )}
+            </SolutionSection>
+          </SolutionContent>
+        </div>
+      );
+    }
+
+    // Default/fallback view
+    return (
+      <div className="p-4 text-center">
+        <p className="text-white/70 text-sm">Loading solution data...</p>
+      </div>
+    );
+  };
+
   return (
     <>
       {!isResetting && queryClient.getQueryData(["new_solution"]) ? (
@@ -378,7 +625,7 @@ const Solutions: React.FC<SolutionsProps> = ({
           setIsProcessing={setDebugProcessing}
           currentLanguage={currentLanguage}
           setLanguage={setLanguage}
-          user={user}  // Pass user to Debug component
+          user={user}
         />
       ) : (
         <div ref={contentRef} className="relative">
@@ -411,121 +658,19 @@ const Solutions: React.FC<SolutionsProps> = ({
             {/* Navbar of commands with the SolutionsHelper */}
             <SolutionCommands
               onTooltipVisibilityChange={handleTooltipVisibilityChange}
-              isProcessing={!problemInfo || !solutionData}
+              isProcessing={currentStep === "extracting" || currentStep === "generating_solution"}
               extraScreenshots={extraScreenshots}
               credits={credits}
               currentLanguage={currentLanguage}
               setLanguage={setLanguage}
               user={user}
+              showDashboard={showDahsboard}
             />
 
-            {/* Main Content - New Layout Structure */}
+            {/* Main Content Area */}
             <div className="w-full text-sm text-black bg-black/60 rounded-md">
               <div className="rounded-lg overflow-hidden">
-                {!solutionData && (
-                  <div className="px-4 py-3 space-y-4 max-w-full">
-                    <div className="space-y-2">
-                      <h2 className="text-[13px] font-medium text-white tracking-wide">
-                        Problem Statement
-                      </h2>
-                      {!problemInfo ? (
-                        <div className="mt-4 flex">
-                          <p className="text-xs bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 bg-clip-text text-transparent animate-pulse">
-                            Extracting problem statement...
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="text-[13px] leading-[1.4] text-gray-100 max-w-[600px]">
-                          {problemInfo.problem_statement}
-                        </div>
-                      )}
-                    </div>
-
-                    {problemInfo && (
-                      <div className="mt-4 flex">
-                        <p className="text-xs bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 bg-clip-text text-transparent animate-pulse">
-                          Generating educational solution...
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {solutionData && (
-                  <div className="flex flex-row">
-                    {/* Sidebar with section links */}
-                    <SolutionSidebar>
-                      {sections.map(section => (
-                        <button
-                          key={section.id}
-                          className={`w-full text-left px-4 py-2 text-sm ${activeSection === section.id
-                            ? "bg-white/10 text-white font-medium"
-                            : "text-white/70 hover:bg-white/5 hover:text-white/90"
-                            }`}
-                          onClick={() => setActiveSection(section.id)}
-                        >
-                          {section.title}
-                        </button>
-                      ))}
-                    </SolutionSidebar>
-
-                    {/* Main content area */}
-                    <SolutionContent>
-                      <SolutionSection
-                        title={sections.find(s => s.id === activeSection)?.title || ""}
-                      >
-                        {activeSection === "code" ? (
-                          <div className="relative">
-                            <button
-                              onClick={() => {
-                                if (solutionData?.code) {
-                                  navigator.clipboard.writeText(solutionData.code)
-                                    .then(() => {
-                                      showToast(
-                                        "Copied to clipboard",
-                                        "Try to manually type next time 🙁... It helps🫵",
-                                        "neutral"
-                                      );
-                                    })
-                                    .catch(err => {
-                                      console.error("Failed to copy: ", err);
-                                      showToast("Error", "Failed to copy code", "error");
-                                    });
-                                }
-                              }}
-                              className="absolute top-2 right-2 bg-white/10 hover:bg-white/20 text-white/80 hover:text-white p-1.5 rounded-md z-10 transition-colors"
-                              title="Copy code"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                              </svg>
-                            </button>
-                            <SyntaxHighlighter
-                              showLineNumbers
-                              language={currentLanguage === "golang" ? "go" : currentLanguage}
-                              style={dracula}
-                              customStyle={{
-                                maxWidth: "100%",
-                                margin: 0,
-                                padding: "1rem",
-                                backgroundColor: "rgba(22, 27, 34, 0.5)",
-                                borderRadius: "4px"
-                              }}
-                              wrapLongLines={true}
-                            >
-                              {getActiveContent()}
-                            </SyntaxHighlighter>
-                          </div>
-                        ) : (
-                          <div className="prose prose-invert prose-sm max-w-none">
-                            {renderMarkdown(getActiveContent())}
-                          </div>
-                        )}
-                      </SolutionSection>
-                    </SolutionContent>
-                  </div>
-                )}
+                {renderCurrentStep()}
               </div>
             </div>
           </div>
