@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
 import Queue from "../_pages/Queue"
 import Solutions from "../_pages/Solutions"
+import Dashboard from './Dashboard'
 import { useToast } from "../contexts/toast"
 import { User } from "@supabase/supabase-js"
 
@@ -23,6 +24,7 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
 }) => {
   const queryClient = useQueryClient()
   const [view, setView] = useState<"queue" | "solutions" | "debug">("queue")
+  const [showDashboard, setShowDashboard] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const { showToast } = useToast()
 
@@ -141,25 +143,31 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
 
   return (
     <div ref={containerRef} className="min-h-0">
-      {view === "queue" ? (
-        <Queue
-          setView={setView}
-          credits={credits}
-          currentLanguage={currentLanguage}
-          setLanguage={setLanguage}
-          hasApiKey={hasApiKey}
-          user={user}
-        />
-      ) : view === "solutions" ? (
-        <Solutions
-          setView={setView}
-          credits={credits}
-          currentLanguage={currentLanguage}
-          setLanguage={setLanguage}
-          hasApiKey={hasApiKey}
-          user={user}
-        />
-      ) : null}
+      {showDashboard ? (
+        <Dashboard onBackToSolutions={() => setShowDashboard(false)} />
+      ) : (
+        view === "queue" ? (
+          <Queue
+            setView={setView}
+            credits={credits}
+            currentLanguage={currentLanguage}
+            setLanguage={setLanguage}
+            hasApiKey={hasApiKey}
+            user={user}
+            showDahsboard={() => setShowDashboard(true)}
+          />
+        ) : view === "solutions" ? (
+          <Solutions
+            setView={setView}
+            credits={credits}
+            currentLanguage={currentLanguage}
+            setLanguage={setLanguage}
+            hasApiKey={hasApiKey}
+            user={user}
+            showDahsboard={() => setShowDashboard(true)}
+          />
+        ) : null
+      )}
     </div>
   )
 }

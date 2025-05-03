@@ -23,6 +23,7 @@ interface QueueProps {
   setLanguage: (language: string) => void
   hasApiKey: boolean  // New prop
   user: User  // New prop
+  showDahsboard: () => void
 }
 
 const Queue: React.FC<QueueProps> = ({

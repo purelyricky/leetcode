@@ -30,6 +30,7 @@ export interface SolutionsProps {
   setLanguage: (language: string) => void
   hasApiKey: boolean  // New prop
   user: User  // New prop
+  showDahsboard: () => void
 }
 
 // Interface for structured educational solution

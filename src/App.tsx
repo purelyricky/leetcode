@@ -18,6 +18,7 @@ import { SettingsDialog } from "./components/Settings/SettingsDialog"
 import AuthPage from "./_pages/AuthPage"
 import { supabase } from "./lib/supabase"
 import { User } from "@supabase/supabase-js"
+import { UserProvider } from "./contexts/userContext"
 
 // Create a React Query client
 const queryClient = new QueryClient({
@@ -246,57 +247,59 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
         <ToastContext.Provider value={{ showToast }}>
-          <div className="relative">
-            {isInitialized ? (
-              user ? (
-                <SubscribedApp
-                  credits={credits}
-                  currentLanguage={currentLanguage}
-                  setLanguage={updateLanguage}
-                  hasApiKey={hasApiKey}
-                  user={user}
-                />
-              ) : (
-                showAuthPage ? (
-                  <AuthPage onAuthSuccess={() => {
-                    // This function will be called after successful authentication
-                    // No need to do anything here as the auth state listener will handle it
-                  }} />
+          <UserProvider>
+            <div className="relative">
+              {isInitialized ? (
+                user ? (
+                  <SubscribedApp
+                    credits={credits}
+                    currentLanguage={currentLanguage}
+                    setLanguage={updateLanguage}
+                    hasApiKey={hasApiKey}
+                    user={user}
+                  />
                 ) : (
-                  <WelcomeScreen onGetStarted={handleGetStarted} />
+                  showAuthPage ? (
+                    <AuthPage onAuthSuccess={() => {
+                      // This function will be called after successful authentication
+                      // No need to do anything here as the auth state listener will handle it
+                    }} />
+                  ) : (
+                    <WelcomeScreen onGetStarted={handleGetStarted} />
+                  )
                 )
-              )
-            ) : (
-              <div className="min-h-screen bg-black flex items-center justify-center">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-6 h-6 border-2 border-white/20 border-t-white/80 rounded-full animate-spin"></div>
-                  <p className="text-white/60 text-sm">
-                    Initializing...
-                  </p>
+              ) : (
+                <div className="min-h-screen bg-black flex items-center justify-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-6 h-6 border-2 border-white/20 border-t-white/80 rounded-full animate-spin"></div>
+                    <p className="text-white/60 text-sm">
+                      Initializing...
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )}
-            <UpdateNotification />
-          </div>
-          
-          {/* Settings Dialog */}
-          <SettingsDialog 
-            open={isSettingsOpen} 
-            onOpenChange={handleCloseSettings} 
-          />
-          
-          <Toast
-            open={toastState.open}
-            onOpenChange={(open) =>
-              setToastState((prev) => ({ ...prev, open }))
-            }
-            variant={toastState.variant}
-            duration={1500}
-          >
-            <ToastTitle>{toastState.title}</ToastTitle>
-            <ToastDescription>{toastState.description}</ToastDescription>
-          </Toast>
-          <ToastViewport />
+              )}
+              <UpdateNotification />
+            </div>
+            
+            {/* Settings Dialog */}
+            <SettingsDialog 
+              open={isSettingsOpen} 
+              onOpenChange={handleCloseSettings} 
+            />
+            
+            <Toast
+              open={toastState.open}
+              onOpenChange={(open) =>
+                setToastState((prev) => ({ ...prev, open }))
+              }
+              variant={toastState.variant}
+              duration={1500}
+            >
+              <ToastTitle>{toastState.title}</ToastTitle>
+              <ToastDescription>{toastState.description}</ToastDescription>
+            </Toast>
+            <ToastViewport />
+          </UserProvider>
         </ToastContext.Provider>
       </ToastProvider>
     </QueryClientProvider>
