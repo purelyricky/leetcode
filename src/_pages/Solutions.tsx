@@ -34,7 +34,7 @@ export interface SolutionsProps {
   setLanguage: (language: string) => void
   hasApiKey: boolean
   user: User
-  showDahsboard: () => void
+  showDashboard: () => void
 }
 
 // Interface for structured educational solution
@@ -70,7 +70,7 @@ const Solutions: React.FC<SolutionsProps> = ({
   setLanguage,
   hasApiKey,
   user,
-  showDahsboard
+  showDashboard
 }) => {
   // Main state
   const queryClient = useQueryClient()
@@ -664,7 +664,7 @@ const Solutions: React.FC<SolutionsProps> = ({
               currentLanguage={currentLanguage}
               setLanguage={setLanguage}
               user={user}
-              showDashboard={showDahsboard}
+              showDashboard={showDashboard}
             />
 
             {/* Main Content Area */}

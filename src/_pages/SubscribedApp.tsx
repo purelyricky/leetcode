@@ -154,7 +154,7 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
             setLanguage={setLanguage}
             hasApiKey={hasApiKey}
             user={user}
-            showDahsboard={() => setShowDashboard(true)}
+            showDashboard={() => setShowDashboard(true)}
           />
         ) : view === "solutions" ? (
           <Solutions
@@ -164,7 +164,7 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
             setLanguage={setLanguage}
             hasApiKey={hasApiKey}
             user={user}
-            showDahsboard={() => setShowDashboard(true)}
+            showDashboard={() => setShowDashboard(true)}
           />
         ) : null
       )}
