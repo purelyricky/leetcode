@@ -16,7 +16,7 @@ export interface SolutionCommandsProps {
   currentLanguage: string
   setLanguage: (language: string) => void
   user: User  // New prop
-  showDashboard: () => void  // Add this prop
+  setView: (view: "queue" | "solutions" | "debug" | "dashboard") => void  // Add this prop
 }
 
 const SolutionCommands: React.FC<SolutionCommandsProps> = ({
@@ -26,8 +26,7 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
   credits,
   currentLanguage,
   setLanguage,
-  user,
-  showDashboard
+  user
 }) => {
   const [isTooltipVisible, setIsTooltipVisible] = useState(false)
   const tooltipRef = useRef<HTMLDivElement>(null)
@@ -266,7 +265,7 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
           {/* Add dashboard button */}
           <div 
             className="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors" 
-            onClick={() => showDashboard()} 
+            onClick={() => setView("dashboard")} 
           > 
             <span className="text-[11px] leading-none">Dashboard</span> 
             <div className="flex gap-1"> 

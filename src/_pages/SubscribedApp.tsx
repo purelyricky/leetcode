@@ -1,9 +1,9 @@
 // file: src/components/SubscribedApp.tsx
 import { useQueryClient } from "@tanstack/react-query"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import Queue from "../_pages/Queue"
 import Solutions from "../_pages/Solutions"
-import Dashboard from './Dashboard'
+import Dashboard from "../_pages/Dashboard"
 import { useToast } from "../contexts/toast"
 import { User } from "@supabase/supabase-js"
 
@@ -23,10 +23,14 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
   user
 }) => {
   const queryClient = useQueryClient()
-  const [view, setView] = useState<"queue" | "solutions" | "debug">("queue")
-  const [showDashboard, setShowDashboard] = useState(false)
+  const [view, setView] = useState<"queue" | "solutions" | "debug" | "dashboard">("queue")
   const containerRef = useRef<HTMLDivElement>(null)
   const { showToast } = useToast()
+
+  // Function to show dashboard
+  const showDashboard = useCallback(() => {
+    setView("dashboard")
+  }, [setView])
 
   // Let's ensure we reset queries etc. if some electron signals happen
   useEffect(() => {
@@ -143,31 +147,29 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
 
   return (
     <div ref={containerRef} className="min-h-0">
-      {showDashboard ? (
-        <Dashboard onBackToSolutions={() => setShowDashboard(false)} />
-      ) : (
-        view === "queue" ? (
-          <Queue
-            setView={setView}
-            credits={credits}
-            currentLanguage={currentLanguage}
-            setLanguage={setLanguage}
-            hasApiKey={hasApiKey}
-            user={user}
-            showDashboard={() => setShowDashboard(true)}
-          />
-        ) : view === "solutions" ? (
-          <Solutions
-            setView={setView}
-            credits={credits}
-            currentLanguage={currentLanguage}
-            setLanguage={setLanguage}
-            hasApiKey={hasApiKey}
-            user={user}
-            showDashboard={() => setShowDashboard(true)}
-          />
-        ) : null
-      )}
+      {view === "queue" ? (
+        <Queue
+          setView={setView}
+          credits={credits}
+          currentLanguage={currentLanguage}
+          setLanguage={setLanguage}
+          hasApiKey={hasApiKey}
+          user={user}
+          showDashboard={showDashboard}
+        />
+      ) : view === "solutions" ? (
+        <Solutions
+          setView={setView}
+          credits={credits}
+          currentLanguage={currentLanguage}
+          setLanguage={setLanguage}
+          hasApiKey={hasApiKey}
+          user={user}
+          showDashboard={showDashboard}
+        />
+      ) : view === "dashboard" ? (
+        <Dashboard />
+      ) : null}
     </div>
   )
 }

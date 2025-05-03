@@ -14,7 +14,7 @@ interface QueueCommandsProps {
   currentLanguage: string
   setLanguage: (language: string) => void
   user: User  // New prop
-  showDashboard: () => void  // Add this prop
+  setView: (view: "queue" | "solutions" | "debug" | "dashboard") => void  // Add this prop
 }
 
 const QueueCommands: React.FC<QueueCommandsProps> = ({
@@ -23,8 +23,7 @@ const QueueCommands: React.FC<QueueCommandsProps> = ({
   credits,
   currentLanguage,
   setLanguage,
-  user,
-  showDashboard
+  user
 }) => {
   const [isTooltipVisible, setIsTooltipVisible] = useState(false)
   const tooltipRef = useRef<HTMLDivElement>(null)
@@ -281,12 +280,12 @@ const QueueCommands: React.FC<QueueCommandsProps> = ({
           {/* Add dashboard button */}
           <div 
             className="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors" 
-            onClick={() => showDashboard()} 
+            onClick={() => setView("dashboard")} 
           > 
             <span className="text-[11px] leading-none">Dashboard</span> 
             <div className="flex gap-1"> 
               <button className="bg-white/10 rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70"> 
-                <BrainCircuit className="w-3 h-3" /> 
+                <BrainCircuit className="w-3 h-3" />
               </button> 
             </div> 
           </div>
