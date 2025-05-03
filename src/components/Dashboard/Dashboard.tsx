@@ -100,6 +100,9 @@ const Dashboard: React.FC = () => {
       });
       
       setCategories(categoriesWithColor);
+    } else {
+      // Initialize with empty categories array if no data
+      setCategories([]);
     }
   }, [learningProgress]);
 

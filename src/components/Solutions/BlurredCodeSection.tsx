@@ -35,25 +35,25 @@ const BlurredCodeSection: React.FC<BlurredCodeSectionProps> = ({
       showToast('Error', 'Please sign in to use hint credits', 'error');
       return;
     }
-    
+
     // Already revealed, no need to do anything
     if (isRevealed) return;
-    
+
     setIsRevealing(true);
-    
+
     const result = await useHint(problemId, hintType, sectionIndex);
-    
+
     if (result.success) {
       setIsRevealed(true);
       showToast(
-        'Hint Revealed', 
-        `${result.creditsRemaining} hint credits remaining today`, 
+        'Hint Revealed',
+        `${result.creditsRemaining} hint credits remaining today`,
         'success'
       );
     } else {
       showToast('Error', result.error || 'Failed to reveal hint', 'error');
     }
-    
+
     setIsRevealing(false);
   };
 
@@ -61,7 +61,7 @@ const BlurredCodeSection: React.FC<BlurredCodeSectionProps> = ({
     <div className="mb-4">
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-sm font-medium text-white/80">{title}</h3>
-        
+
         {!isRevealed && (
           <div className="flex items-center space-x-2">
             <span className="text-xs text-amber-400">
@@ -71,8 +71,8 @@ const BlurredCodeSection: React.FC<BlurredCodeSectionProps> = ({
               size="sm"
               onClick={handleReveal}
               disabled={
-                isRevealing || 
-                !userProfile || 
+                isRevealing ||
+                !userProfile ||
                 (userProfile.hint_credits_remaining <= 0)
               }
               className="bg-amber-500 hover:bg-amber-600 text-black text-xs px-3 py-1 h-7"
@@ -91,10 +91,10 @@ const BlurredCodeSection: React.FC<BlurredCodeSectionProps> = ({
           </div>
         )}
       </div>
-      
+
       <div className="relative">
         {!isRevealed && (
-          <div className="absolute inset-0 backdrop-blur-md bg-black/30 rounded-md flex items-center justify-center z-10">
+          <div className="absolute inset-0 bg-black rounded-md flex items-center justify-center z-10">
             <div className="text-center p-4">
               <Lock className="w-8 h-8 text-amber-500/70 mx-auto mb-2" />
               <p className="text-white/80 text-sm mb-1">
@@ -106,7 +106,7 @@ const BlurredCodeSection: React.FC<BlurredCodeSectionProps> = ({
             </div>
           </div>
         )}
-        
+
         <SyntaxHighlighter
           showLineNumbers
           language={language === 'golang' ? 'go' : language}
