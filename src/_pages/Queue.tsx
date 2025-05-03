@@ -23,7 +23,7 @@ interface QueueProps {
   setLanguage: (language: string) => void
   hasApiKey: boolean  // New prop
   user: User  // New prop
-  showDahsboard: () => void
+  showDashboard: () => void
 }
 
 const Queue: React.FC<QueueProps> = ({
@@ -32,7 +32,8 @@ const Queue: React.FC<QueueProps> = ({
   currentLanguage,
   setLanguage,
   hasApiKey,
-  user
+  user,
+  showDashboard
 }) => {
   const { showToast } = useToast()
 
@@ -141,6 +142,8 @@ const Queue: React.FC<QueueProps> = ({
     window.electronAPI.openSettingsPortal();
   };
   
+  
+
   return (
     <div ref={contentRef} className={`bg-transparent w-1/2`}>
       {/* Add a draggable region at the top */}
@@ -170,6 +173,7 @@ const Queue: React.FC<QueueProps> = ({
             currentLanguage={currentLanguage}
             setLanguage={setLanguage}
             user={user}
+            showDashboard={showDashboard}
           />
         </div>
       </div>
