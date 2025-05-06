@@ -368,3 +368,370 @@ export async function getUserRecentProblems(userId: string, limit: number = 10):
   
   return data;
 }
+
+
+// Track code reveal levels
+export async function trackCodeReveal(
+  userId: string,
+  problemId: string,
+  sectionType: 'code' | 'approach' | 'complexity' | 'pseudocode',
+  sectionIndex: number,
+  revealLevel: number,
+  satisfiedAtLevel: number | null
+): Promise<void> {
+  try {
+    // First check if there's an existing record
+    const { data: existingRecord, error: fetchError } = await supabase
+      .from('code_reveals')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('problem_id', problemId)
+      .eq('section_type', sectionType)
+      .eq('section_index', sectionIndex)
+      .single();
+    
+    if (fetchError && fetchError.code !== 'PGRST116') { // Not just "not found"
+      console.error('Error fetching code reveal record:', fetchError);
+      return;
+    }
+    
+    if (!existingRecord) {
+      // Create new record
+      const { error } = await supabase
+        .from('code_reveals')
+        .insert({
+          user_id: userId,
+          problem_id: problemId,
+          section_type: sectionType,
+          section_index: sectionIndex,
+          reveal_level: revealLevel,
+          satisfied_at_level: satisfiedAtLevel,
+          created_at: new Date().toISOString()
+        });
+      
+      if (error) {
+        console.error('Error creating code reveal record:', error);
+      }
+    } else {
+      // Update existing record if the reveal level increased
+      if (existingRecord.reveal_level < revealLevel) {
+        const { error } = await supabase
+          .from('code_reveals')
+          .update({
+            reveal_level: revealLevel,
+            satisfied_at_level: satisfiedAtLevel
+          })
+          .eq('id', existingRecord.id);
+        
+        if (error) {
+          console.error('Error updating code reveal record:', error);
+        }
+      } else if (satisfiedAtLevel !== null && existingRecord.satisfied_at_level === null) {
+        // Only update the satisfied_at_level if it was previously null
+        const { error } = await supabase
+          .from('code_reveals')
+          .update({
+            satisfied_at_level: satisfiedAtLevel
+          })
+          .eq('id', existingRecord.id);
+        
+        if (error) {
+          console.error('Error updating code reveal satisfaction:', error);
+        }
+      }
+    }
+    
+    // Update learning progress stats
+    await updateLearningProgressFromReveal(userId, problemId, sectionType, revealLevel, satisfiedAtLevel);
+    
+  } catch (error) {
+    console.error('Error tracking code reveal:', error);
+  }
+}
+
+// Update learning progress based on code reveals
+async function updateLearningProgressFromReveal(
+  userId: string,
+  problemId: string,
+  sectionType: string,
+  revealLevel: number,
+  satisfiedAtLevel: number | null
+): Promise<void> {
+  try {
+    // Get the problem category
+    const { data: problem, error: problemError } = await supabase
+      .from('problem_history')
+      .select('problem_category')
+      .eq('id', problemId)
+      .single();
+    
+    if (problemError) {
+      console.error('Error fetching problem category:', problemError);
+      return;
+    }
+    
+    const category = problem.problem_category;
+    
+    // Get user's learning progress for this category
+    const { data: progress, error: progressError } = await supabase
+      .from('learning_progress')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('category', category)
+      .single();
+    
+    if (progressError && progressError.code !== 'PGRST116') {
+      console.error('Error fetching learning progress:', progressError);
+      return;
+    }
+    
+    // Calculate metrics based on reveals
+    // Lower reveal level is better - it means user needed less help
+    // Get all reveals for this user in this category in the last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    // First get the problem IDs for this category
+    const { data: categoryProblems, error: categoryError } = await supabase
+      .from('problem_history')
+      .select('id')
+      .eq('problem_category', category)
+      .eq('user_id', userId);
+      
+    if (categoryError) {
+      console.error('Error fetching category problems:', categoryError);
+      return;
+    }
+    
+    const problemIds = categoryProblems?.map(row => row.id) || [];
+    
+    // Then use those IDs in the main query
+    const { data: recentReveals, error: revealsError } = await supabase
+      .from('code_reveals')
+      .select('reveal_level, satisfied_at_level, problem_id')
+      .eq('user_id', userId)
+      .gte('created_at', thirtyDaysAgo.toISOString())
+      .in('problem_id', problemIds);
+    
+    if (revealsError) {
+      console.error('Error fetching recent reveals:', revealsError);
+      return;
+    }
+    
+    // Calculate average reveal level needed (lower is better)
+    const uniqueProblems = new Set();
+    let totalRevealLevel = 0;
+    let totalProblems = 0;
+    
+    recentReveals?.forEach(reveal => {
+      if (!uniqueProblems.has(reveal.problem_id)) {
+        uniqueProblems.add(reveal.problem_id);
+        // Use satisfied_at_level if available, otherwise use reveal_level
+        const effectiveLevel = reveal.satisfied_at_level || reveal.reveal_level;
+        totalRevealLevel += effectiveLevel;
+        totalProblems++;
+      }
+    });
+    
+    const avgRevealLevel = totalProblems > 0 ? totalRevealLevel / totalProblems : 5;
+    
+    // Calculate improvement rate by comparing recent vs older reveals
+    // (this would require more complex calculations - simplified for now)
+    const improvementRate = 0.0; // Placeholder
+    
+    if (!progress) {
+      // Create new progress record
+      const { error } = await supabase
+        .from('learning_progress')
+        .insert({
+          user_id: userId,
+          category,
+          problems_attempted: 1,
+          problems_solved: satisfiedAtLevel !== null ? 1 : 0,
+          avg_reveal_level: avgRevealLevel,
+          improvement_rate: improvementRate,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      
+      if (error) {
+        console.error('Error creating learning progress:', error);
+      }
+    } else {
+      // Update existing progress
+      const { error } = await supabase
+        .from('learning_progress')
+        .update({
+          problems_attempted: uniqueProblems.size,
+          problems_solved: progress.problems_solved + (satisfiedAtLevel !== null ? 1 : 0),
+          avg_reveal_level: avgRevealLevel,
+          improvement_rate: improvementRate,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', progress.id);
+      
+      if (error) {
+        console.error('Error updating learning progress:', error);
+      }
+    }
+    
+  } catch (error) {
+    console.error('Error updating learning progress from reveals:', error);
+  }
+}
+
+// Get user's learning improvement over time
+export async function getUserLearningTrend(
+  userId: string, 
+  timeframe: 'week' | 'month' | 'all' = 'month'
+): Promise<any> {
+  try {
+    // Calculate the start date based on timeframe
+    const startDate = new Date();
+    if (timeframe === 'week') {
+      startDate.setDate(startDate.getDate() - 7);
+    } else if (timeframe === 'month') {
+      startDate.setMonth(startDate.getMonth() - 1);
+    } else {
+      startDate.setFullYear(startDate.getFullYear() - 1);
+    }
+    
+    // Get all code reveals for this user in the selected timeframe
+    const { data: reveals, error } = await supabase
+      .from('code_reveals')
+      .select(`
+        id, 
+        reveal_level, 
+        satisfied_at_level, 
+        created_at, 
+        problem_id, 
+        problem_history:problem_id (problem_category, problem_difficulty)
+      `)
+      .eq('user_id', userId)
+      .gte('created_at', startDate.toISOString())
+      .order('created_at', { ascending: true });
+    
+    if (error) {
+      console.error('Error fetching user learning trend:', error);
+      return null;
+    }
+    
+    // Group reveals by week/month and calculate metrics
+    const timeSegments: { [key: string]: any } = {};
+    
+    reveals?.forEach(reveal => {
+      // Format date as YYYY-WW (year-week number) or YYYY-MM
+      const date = new Date(reveal.created_at);
+      const year = date.getFullYear();
+      
+      let timeKey: string;
+      if (timeframe === 'week') {
+        // Get ISO week number (1-52)
+        const weekNumber = Math.ceil((date.getTime() - new Date(year, 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000));
+        timeKey = `${year}-W${weekNumber.toString().padStart(2, '0')}`;
+      } else {
+        const month = date.getMonth() + 1;
+        timeKey = `${year}-${month.toString().padStart(2, '0')}`;
+      }
+      
+      // Initialize segment if it doesn't exist
+      if (!timeSegments[timeKey]) {
+        timeSegments[timeKey] = {
+          period: timeKey,
+          problems_attempted: new Set(),
+          total_reveal_level: 0,
+          total_reveals: 0,
+          categories: {}
+        };
+      }
+      
+      // Add to metrics
+      timeSegments[timeKey].problems_attempted.add(reveal.problem_id);
+      timeSegments[timeKey].total_reveal_level += reveal.satisfied_at_level || reveal.reveal_level;
+      timeSegments[timeKey].total_reveals++;
+      
+      // Track by category
+      const category = reveal.problem_history?.[0]?.problem_category || 'Unknown';
+      if (!timeSegments[timeKey].categories[category]) {
+        timeSegments[timeKey].categories[category] = {
+          problems: new Set(),
+          total_reveal_level: 0,
+          total_reveals: 0
+        };
+      }
+      
+      timeSegments[timeKey].categories[category].problems.add(reveal.problem_id);
+      timeSegments[timeKey].categories[category].total_reveal_level += reveal.satisfied_at_level || reveal.reveal_level;
+      timeSegments[timeKey].categories[category].total_reveals++;
+    });
+    
+    // Format the results
+    const trendData = Object.values(timeSegments).map(segment => {
+      const avgRevealLevel = segment.total_reveals > 0 
+        ? segment.total_reveal_level / segment.total_reveals 
+        : 0;
+      
+      const categoryData = Object.entries(segment.categories).map(([category, data]: [string, any]) => {
+        const categoryAvgReveal = data.total_reveals > 0 
+          ? data.total_reveal_level / data.total_reveals 
+          : 0;
+        
+        return {
+          category,
+          problems_count: data.problems.size,
+          avg_reveal_level: categoryAvgReveal
+        };
+      });
+      
+      return {
+        period: segment.period,
+        problems_count: segment.problems_attempted.size,
+        avg_reveal_level: avgRevealLevel,
+        categories: categoryData
+      };
+    });
+    
+    return trendData;
+    
+  } catch (error) {
+    console.error('Error getting user learning trend:', error);
+    return null;
+  }
+}
+
+// Get recommended categories to focus on
+export async function getRecommendedCategories(userId: string): Promise<any> {
+  try {
+    // Get all learning progress entries
+    const { data: progressData, error } = await supabase
+      .from('learning_progress')
+      .select('*')
+      .eq('user_id', userId)
+      .order('avg_reveal_level', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching learning progress:', error);
+      return null;
+    }
+    
+    // Sort categories by avg_reveal_level (descending - higher means needs more help)
+    const recommendations = progressData
+      ?.filter(entry => entry.problems_attempted > 0)
+      ?.map(entry => ({
+        category: entry.category,
+        avg_reveal_level: entry.avg_reveal_level,
+        problems_attempted: entry.problems_attempted,
+        problems_solved: entry.problems_solved,
+        focus_reason: entry.avg_reveal_level > 3 
+          ? 'You typically need more help with this category'
+          : 'You\'re making good progress in this category'
+      }))
+      ?.sort((a, b) => b.avg_reveal_level - a.avg_reveal_level);
+    
+    return recommendations;
+    
+  } catch (error) {
+    console.error('Error getting recommended categories:', error);
+    return null;
+  }
+}

@@ -14,7 +14,7 @@ interface QueueCommandsProps {
   currentLanguage: string
   setLanguage: (language: string) => void
   user: User  // New prop
-  setView: (view: "queue" | "solutions" | "debug" | "dashboard") => void  // Add this prop
+  showDashboard: () => void  // Add this prop to the interface
 }
 
 const QueueCommands: React.FC<QueueCommandsProps> = ({
@@ -23,7 +23,8 @@ const QueueCommands: React.FC<QueueCommandsProps> = ({
   credits,
   currentLanguage,
   setLanguage,
-  user
+  user,
+  showDashboard  // Add this to the destructured props
 }) => {
   const [isTooltipVisible, setIsTooltipVisible] = useState(false)
   const tooltipRef = useRef<HTMLDivElement>(null)
@@ -280,7 +281,7 @@ const QueueCommands: React.FC<QueueCommandsProps> = ({
           {/* Add dashboard button */}
           <div 
             className="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors" 
-            onClick={() => setView("dashboard")} 
+            onClick={showDashboard}  // Use showDashboard instead of setView 
           > 
             <span className="text-[11px] leading-none">Dashboard</span> 
             <div className="flex gap-1"> 

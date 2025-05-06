@@ -1,9 +1,8 @@
-// file: src/components/SubscribedApp.tsx
+import React, { useState, useEffect, useRef, useCallback } from "react"
+import { useNavigate } from "react-router-dom" // Add this import
 import { useQueryClient } from "@tanstack/react-query"
-import { useEffect, useRef, useState, useCallback } from "react"
-import Queue from "../_pages/Queue"
-import Solutions from "../_pages/Solutions"
-import Dashboard from "../_pages/Dashboard"
+import Queue from "./Queue"
+import Solutions from "./Solutions"
 import { useToast } from "../contexts/toast"
 import { User } from "@supabase/supabase-js"
 
@@ -11,8 +10,8 @@ interface SubscribedAppProps {
   credits: number
   currentLanguage: string
   setLanguage: (language: string) => void
-  hasApiKey: boolean  // New prop
-  user: User  // New prop
+  hasApiKey: boolean
+  user: User
 }
 
 const SubscribedApp: React.FC<SubscribedAppProps> = ({
@@ -22,15 +21,16 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
   hasApiKey,
   user
 }) => {
+  const navigate = useNavigate(); // Add this
   const queryClient = useQueryClient()
-  const [view, setView] = useState<"queue" | "solutions" | "debug" | "dashboard">("queue")
+  const [view, setView] = useState<"queue" | "solutions" | "debug">("queue")
   const containerRef = useRef<HTMLDivElement>(null)
   const { showToast } = useToast()
 
   // Function to show dashboard
   const showDashboard = useCallback(() => {
-    setView("dashboard")
-  }, [setView])
+    navigate('/dashboard');
+  }, [navigate]);
 
   // Let's ensure we reset queries etc. if some electron signals happen
   useEffect(() => {
@@ -167,8 +167,6 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
           user={user}
           showDashboard={showDashboard}
         />
-      ) : view === "dashboard" ? (
-        <Dashboard />
       ) : null}
     </div>
   )
