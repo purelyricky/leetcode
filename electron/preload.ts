@@ -217,8 +217,7 @@ const electronAPI = {
   checkApiKey: () => ipcRenderer.invoke("check-api-key"),
   validateApiKey: (apiKey: string) => 
     ipcRenderer.invoke("validate-api-key", apiKey),
-  openExternal: (url: string) => 
-    ipcRenderer.invoke("openExternal", url),
+  openExternal: (url: string) => ipcRenderer.invoke('openExternal', url),
   onApiKeyInvalid: (callback: () => void) => {
     const subscription = () => callback()
     ipcRenderer.on(PROCESSING_EVENTS.API_KEY_INVALID, subscription)

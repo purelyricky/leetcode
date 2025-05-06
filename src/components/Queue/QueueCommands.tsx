@@ -109,18 +109,18 @@ const QueueCommands: React.FC<QueueCommandsProps> = ({
       // Call Supabase sign out
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-  
+
       // Clear any local storage or electron-specific data
       localStorage.clear();
       sessionStorage.clear();
-  
+
       // Clear the API key in the configuration
       await window.electronAPI.updateConfig({
         apiKey: '',
       });
-  
+
       showToast('Success', 'Logged out successfully', 'success');
-  
+
       // Reload the app after a short delay
       setTimeout(() => {
         window.location.reload();
@@ -277,19 +277,6 @@ const QueueCommands: React.FC<QueueCommandsProps> = ({
 
           {/* Separator */}
           <div className="mx-2 h-4 w-px bg-white/20" />
-
-          {/* Add dashboard button */}
-          <div 
-            className="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors" 
-            onClick={showDashboard}  // Use showDashboard instead of setView 
-          > 
-            <span className="text-[11px] leading-none">Dashboard</span> 
-            <div className="flex gap-1"> 
-              <button className="bg-white/10 rounded-md px-1.5 py-1 text-[11px] leading-none text-white/70"> 
-                <BrainCircuit className="w-3 h-3" />
-              </button> 
-            </div> 
-          </div>
 
           {/* Language Selector - Added before the gear icon */}
           <div className="flex items-center gap-2">
@@ -592,6 +579,43 @@ const QueueCommands: React.FC<QueueCommandsProps> = ({
                         </div>
                       </div>
                     </div>
+                    {/* Creator Section with Social Links */}
+                    <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+                      <span className="text-[11px] leading-none text-white/70">Follow App's Creator:</span>
+                      <div className="flex items-center gap-4">
+                        {/* GitHub Link */}
+                        <a 
+                          href="#" 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            window.electronAPI.openExternal("https://github.com/purelyricky/");
+                          }}
+                          className="text-white/70 hover:text-white/90 transition-colors"
+                          title="GitHub Profile"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+                          </svg>
+                        </a>
+                        
+                        {/* LinkedIn Link */}
+                        <a 
+                          href="#" 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            window.electronAPI.openExternal("https://www.linkedin.com/in/purelyricky/");
+                          }}
+                          className="text-white/70 hover:text-white/90 transition-colors"
+                          title="LinkedIn Profile"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
+                            <rect x="2" y="9" width="4" height="12"></rect>
+                            <circle cx="4" cy="4" r="2"></circle>
+                          </svg>
+                        </a>
+                      </div>
+                    </div>
 
                     {/* Separator */}
                     <div className="h-px w-full bg-white/10" />
@@ -611,25 +635,35 @@ const QueueCommands: React.FC<QueueCommandsProps> = ({
 
                     {/* Separator */}
                     <div className="h-px w-full bg-white/10" />
+                    {/* Dashboard Button */}
+                    <div
+                      className="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
+                      onClick={showDashboard}  // Use showDashboard instead of setView 
+                    >
+                      <div className="flex items-center gap-1">
+                        <BrainCircuit className="w-3.5 h-3.5 text-white/70" />
+                        <span className="text-[11px] leading-none">Dashboard</span>
+                      </div>
+                    </div>
 
                     {/* User Profile with Sign Out */}
                     <div
-                        className="flex items-center justify-between gap-4 cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors w-full"
-                        onClick={handleSignOut}
-                        title="Click to sign out"
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-medium">
-                            {getInitial()}
-                          </div>
-                          <span className="text-[11px] leading-none truncate max-w-[80px]">
-                            {getUserFullName()}
-                          </span>
+                      className="flex items-center justify-between gap-4 cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors w-full"
+                      onClick={handleSignOut}
+                      title="Click to sign out"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-medium">
+                          {getInitial()}
                         </div>
-                        <span className="text-[11px] leading-none text-red-400">
-                          Sign Out 
+                        <span className="text-[11px] leading-none truncate max-w-[80px]">
+                          {getUserFullName()}
                         </span>
                       </div>
+                      <span className="text-[11px] leading-none text-red-400">
+                        Sign Out
+                      </span>
+                    </div>
 
                   </div>
                 </div>

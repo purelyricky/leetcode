@@ -94,18 +94,21 @@ const Solutions: React.FC<SolutionsProps> = ({
   const { userProfile } = useUser()
 
   useEffect(() => {
+    // Add a flag to prevent unwanted transitions
+    let shouldUpdateStep = true;
+    
     // Load problem statement and solution data from cache
     const cachedProblemInfo = queryClient.getQueryData(["problem_statement"]);
-    if (cachedProblemInfo) {
+    if (cachedProblemInfo && shouldUpdateStep) {
       setProblemInfo(cachedProblemInfo);
-      // If we already have problem info, move to user explanation step
+      // Only transition if we're in the extracting step
       if (currentStep === "extracting") {
         setCurrentStep("user_explanation");
       }
     }
-
+    
     const cachedSolution = queryClient.getQueryData(["solution"]) as EducationalSolution | null;
-    if (cachedSolution) {
+    if (cachedSolution && shouldUpdateStep) {
       setSolutionData(cachedSolution);
       // If we already have solution, move to solution ready step
       if (currentStep === "generating_solution") {
@@ -113,29 +116,35 @@ const Solutions: React.FC<SolutionsProps> = ({
       }
     }
 
+    // Prevent other state changing operations from modifying the currentStep
+    // if we're in the user_explanation phase and haven't submitted yet
+    if (currentStep === "user_explanation" && !hasSubmittedExplanation) {
+      shouldUpdateStep = false;
+    }
+    
     // Load debug solution if it exists
     const debugSolution = queryClient.getQueryData(["new_solution"]);
-    if (debugSolution) {
+    if (debugSolution && shouldUpdateStep) {
       setCurrentStep("debug");
     }
 
     // Subscribe to query cache updates
     const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
-      if (event?.query.queryKey[0] === "problem_statement") {
+      if (event?.query.queryKey[0] === "problem_statement" && shouldUpdateStep) {
         setProblemInfo(queryClient.getQueryData(["problem_statement"]) || null)
         // When problem statement is extracted, move to user explanation
         if (currentStep === "extracting") {
           setCurrentStep("user_explanation");
         }
       }
-      if (event?.query.queryKey[0] === "solution") {
+      if (event?.query.queryKey[0] === "solution" && shouldUpdateStep) {
         setSolutionData(queryClient.getQueryData(["solution"]) || null)
         // When solution is generated, move to solution ready
         if (currentStep === "generating_solution") {
           setCurrentStep("solution_ready");
         }
       }
-      if (event?.query.queryKey[0] === "new_solution") {
+      if (event?.query.queryKey[0] === "new_solution" && shouldUpdateStep) {
         setCurrentStep("debug");
       }
     })
@@ -159,7 +168,7 @@ const Solutions: React.FC<SolutionsProps> = ({
     fetchScreenshots()
 
     return () => unsubscribe()
-  }, [queryClient, currentStep])
+  }, [queryClient, currentStep, hasSubmittedExplanation])
 
   // Set up window height updates and event listeners
   useEffect(() => {

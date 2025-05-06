@@ -6,7 +6,8 @@ import {
   ProblemHistory,
   LearningProgress,
   getUserLearningProgress,
-  getUserRecentProblems
+  getUserRecentProblems,
+  initUserProfile
 } from '../lib/supabaseSchema';
 import { supabase } from '../lib/supabase';
 import { useToast } from './toast';
@@ -71,10 +72,32 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     setIsLoadingProfile(true);
     try {
-      const profile = await getUserProfile(user.id);
-      setUserProfile(profile);
+      // First check if profile exists
+      const { data: existingProfile, error: fetchError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (fetchError && fetchError.code === 'PGRST116') {
+        // Profile doesn't exist, create it
+        console.log("Creating new user profile for user:", user.id);
+        const newProfile = await initUserProfile(user.id);
+        if (newProfile) {
+          setUserProfile(newProfile);
+          console.log("New profile created successfully:", newProfile);
+        } else {
+          console.error("Failed to create new profile");
+          showToast('Error', 'Failed to create user profile', 'error');
+        }
+      } else if (fetchError) {
+        console.error('Error fetching user profile:', fetchError);
+        showToast('Error', 'Failed to load user profile', 'error');
+      } else {
+        setUserProfile(existingProfile);
+      }
     } catch (error) {
-      console.error('Error loading user profile:', error);
+      console.error('Error in refreshUserProfile:', error);
       showToast('Error', 'Failed to load user profile', 'error');
     } finally {
       setIsLoadingProfile(false);

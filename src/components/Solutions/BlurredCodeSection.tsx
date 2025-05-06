@@ -70,7 +70,7 @@ const BlurredCodeSection: React.FC<BlurredCodeSectionProps> = ({
       const newLevel = Math.min(revealLevel + 1, REVEAL_LEVELS.length);
       
       // Track this reveal in the database
-      await trackCodeReveal(
+      const result = await trackCodeReveal(
         user.id,
         problemId,
         sectionType,
@@ -78,6 +78,13 @@ const BlurredCodeSection: React.FC<BlurredCodeSectionProps> = ({
         newLevel,
         isSatisfied ? newLevel : null
       );
+      
+      if (!result.success) {
+        console.error('Error tracking code reveal:', result.error);
+        // Continue anyway as this shouldn't block the user experience
+      } else {
+        console.log('Successfully tracked code reveal');
+      }
       
       setRevealLevel(newLevel);
       
@@ -105,7 +112,7 @@ const BlurredCodeSection: React.FC<BlurredCodeSectionProps> = ({
     
     try {
       // Update the database to mark this level as satisfactory
-      await trackCodeReveal(
+      const result = await trackCodeReveal(
         user.id,
         problemId,
         sectionType,
@@ -113,6 +120,13 @@ const BlurredCodeSection: React.FC<BlurredCodeSectionProps> = ({
         revealLevel,
         revealLevel
       );
+      
+      if (!result.success) {
+        console.error('Error marking as satisfied:', result.error);
+        showToast('Warning', 'Progress saved locally but not synced to cloud', 'error');
+      } else {
+        console.log('Successfully marked code as understood');
+      }
       
       setIsSatisfied(true);
       showToast('Great!', 'You\'ve marked this as understood', 'success');

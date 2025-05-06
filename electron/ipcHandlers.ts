@@ -189,7 +189,7 @@ export function initializeIpcHandlers(deps: IIpcHandlerDeps): void {
   })
   
   // Open external URL handler
-  ipcMain.handle("openLink", (event, url: string) => {
+  ipcMain.handle("openExternal", (event, url: string) => {
     try {
       console.log(`Opening external URL: ${url}`);
       shell.openExternal(url);

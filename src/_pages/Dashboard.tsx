@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/userContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { BarChart, Calendar, ChevronLeft, Code, LineChart, Target, Trophy, BookOpen, BrainCircuit, ArrowRight, Settings, Sparkles } from 'lucide-react';
+import { BarChart, Calendar, ChevronLeft, Code, LineChart, Target, Trophy, BookOpen, BrainCircuit, ArrowRight, Settings, Sparkles, AlertCircle } from 'lucide-react';
 import { getUserLearningTrend, getRecommendedCategories } from '../lib/supabaseSchema';
 import { useToast } from '../contexts/toast';
 
@@ -54,6 +54,96 @@ interface LearningTrendPoint {
   }[];
 }
 
+// Demo data for the dashboard
+const DEMO_LEARNING_TREND: LearningTrendPoint[] = [
+  { 
+    period: '2025-01', 
+    problems_count: 12, 
+    avg_reveal_level: 3.2,
+    categories: [{ category: 'Array', problems_count: 5, avg_reveal_level: 3.0 }]
+  },
+  { 
+    period: '2025-02', 
+    problems_count: 15, 
+    avg_reveal_level: 2.8,
+    categories: [{ category: 'String', problems_count: 6, avg_reveal_level: 2.5 }]
+  },
+  { 
+    period: '2025-03', 
+    problems_count: 18, 
+    avg_reveal_level: 2.5,
+    categories: [{ category: 'Hash Table', problems_count: 7, avg_reveal_level: 2.2 }]
+  },
+  { 
+    period: '2025-04', 
+    problems_count: 22, 
+    avg_reveal_level: 2.2,
+    categories: [{ category: 'Tree', problems_count: 8, avg_reveal_level: 2.0 }]
+  },
+  { 
+    period: '2025-05', 
+    problems_count: 25, 
+    avg_reveal_level: 1.9,
+    categories: [{ category: 'Dynamic Programming', problems_count: 10, avg_reveal_level: 1.8 }]
+  },
+  { 
+    period: '2025-06', 
+    problems_count: 30, 
+    avg_reveal_level: 1.7,
+    categories: [{ category: 'Graph', problems_count: 12, avg_reveal_level: 1.5 }]
+  }
+];
+
+const DEMO_CATEGORIES: CategoryProgress[] = [
+  {
+    category: 'Dynamic Programming',
+    avg_reveal_level: 1.8,
+    problems_attempted: 15,
+    problems_solved: 12,
+    focus_reason: 'You\'re making good progress but could improve efficiency in this key area'
+  },
+  {
+    category: 'Graph',
+    avg_reveal_level: 2.2,
+    problems_attempted: 10,
+    problems_solved: 7,
+    focus_reason: 'This is a challenging area where more practice will significantly boost your skills'
+  },
+  {
+    category: 'Tree',
+    avg_reveal_level: 1.5,
+    problems_attempted: 20,
+    problems_solved: 18,
+    focus_reason: 'You\'re doing well here, keep practicing to maintain your edge'
+  },
+  {
+    category: 'Array',
+    avg_reveal_level: 1.2,
+    problems_attempted: 25,
+    problems_solved: 24,
+    focus_reason: 'You\'ve mastered the basics, try more complex array problems'
+  },
+  {
+    category: 'String',
+    avg_reveal_level: 2.0,
+    problems_attempted: 12,
+    problems_solved: 9,
+    focus_reason: 'More practice with string manipulation will improve your overall coding skills'
+  },
+  {
+    category: 'Hash Table',
+    avg_reveal_level: 2.5,
+    problems_attempted: 8,
+    problems_solved: 5,
+    focus_reason: 'This is an important area for interview preparation'
+  }
+];
+
+const DEMO_USER_PROFILE = {
+  problems_solved: 75,
+  streak_days: 14
+};
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, userProfile, refreshUserProfile } = useUser();
@@ -62,6 +152,7 @@ const Dashboard: React.FC = () => {
   const [learningTrend, setLearningTrend] = useState<LearningTrendPoint[]>([]);
   const [recommendedCategories, setRecommendedCategories] = useState<CategoryProgress[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(true);
   
   // Function to navigate back to the main view
   const handleBack = () => {
@@ -71,21 +162,38 @@ const Dashboard: React.FC = () => {
   // Load dashboard data
   useEffect(() => {
     const loadDashboardData = async () => {
+      // Set a short timeout to simulate loading
+      setTimeout(() => {
+        // Load demo data instead of real data
+        setLearningTrend(DEMO_LEARNING_TREND);
+        setRecommendedCategories(DEMO_CATEGORIES);
+        setIsLoading(false);
+      }, 1000);
+      
+      // The real data loading is commented out for now
+      /*
       if (!user) {
         setIsLoading(false);
         return;
       }
       
       try {
-        // Load user profile
-        await refreshUserProfile();
+        console.log("Loading dashboard data for user:", user.id);
         
-        // Load learning trend data
+        // Load user profile with proper error handling
+        const profileResult = await refreshUserProfile();
+        if (profileResult === undefined) {
+          console.warn("Failed to load or create user profile");
+        }
+        
+        // Load learning trend data with better error handling
         const trendData = await getUserLearningTrend(user.id, timeframe);
+        console.log("Trend data loaded:", trendData);
         setLearningTrend(trendData || []);
         
-        // Load recommended categories
+        // Load recommended categories with better error handling
         const recommendations = await getRecommendedCategories(user.id);
+        console.log("Category recommendations loaded:", recommendations);
         setRecommendedCategories(recommendations || []);
         
         setIsLoading(false);
@@ -94,6 +202,7 @@ const Dashboard: React.FC = () => {
         showToast('Error', 'Failed to load dashboard data', 'error');
         setIsLoading(false);
       }
+      */
     };
     
     loadDashboardData();
@@ -115,6 +224,16 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="bg-black min-h-screen text-white p-6">
+      {/* Demo Mode Banner */}
+      {isDemoMode && (
+        <div className="bg-amber-500/20 border border-amber-500/50 rounded-lg p-3 mb-6 flex items-center">
+          <AlertCircle className="w-5 h-5 text-amber-500 mr-2 flex-shrink-0" />
+          <p className="text-amber-200 text-sm">
+            <span className="font-semibold">Demo Mode:</span> You're viewing sample data. The learning dashboard feature is under construction and will be available soon with your real progress data!
+          </p>
+        </div>
+      )}
+      
       {/* Header with back button */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
@@ -152,7 +271,7 @@ const Dashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-white">
-              {userProfile?.problems_solved || 0}
+              {isDemoMode ? DEMO_USER_PROFILE.problems_solved : (userProfile?.problems_solved || 0)}
             </div>
             <p className="text-xs text-white/60 mt-1">Problems solved with less help over time</p>
           </CardContent>
@@ -167,7 +286,8 @@ const Dashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-white">
-              {hasData ? `${Math.floor(100 - (recommendedCategories[0]?.avg_reveal_level || 0) * 20)}%` : "N/A"}
+              {isDemoMode ? `${Math.floor(100 - (DEMO_CATEGORIES[0].avg_reveal_level) * 20)}%` : 
+                (hasData ? `${Math.floor(100 - (recommendedCategories[0]?.avg_reveal_level || 0) * 20)}%` : "N/A")}
             </div>
             <p className="text-xs text-white/60 mt-1">Based on how much solution help you need</p>
           </CardContent>
@@ -182,7 +302,7 @@ const Dashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-white">
-              {userProfile?.streak_days || 0} days
+              {isDemoMode ? `${DEMO_USER_PROFILE.streak_days} days` : `${userProfile?.streak_days || 0} days`}
             </div>
             <p className="text-xs text-white/60 mt-1">
               Continue solving problems to build your streak
@@ -191,7 +311,7 @@ const Dashboard: React.FC = () => {
         </Card>
       </div>
       
-      {!hasData ? (
+      {!hasData && !isDemoMode ? (
         // Empty state for new users
         <div className="bg-black/40 border border-amber-500/10 rounded-xl p-8 text-center my-8">
           <Sparkles className="w-12 h-12 text-amber-500 mx-auto mb-4" />
@@ -264,47 +384,74 @@ const Dashboard: React.FC = () => {
                   </div>
                 ) : (
                   <>
-                    {/* Simple chart implementation - in a real app, use a proper chart library */}
+                    {/* Improved chart implementation with guaranteed visibility */}
                     <div className="flex flex-col h-full">
-                      <div className="flex-1 flex items-end">
-                        <div className="flex h-full w-full items-end justify-between gap-2">
+                      {/* Y-axis labels */}
+                      <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-white/50 pr-2">
+                        <span>100%</span>
+                        <span>75%</span>
+                        <span>50%</span>
+                        <span>25%</span>
+                        <span>0%</span>
+                      </div>
+                      
+                      {/* Chart area with fixed width columns and minimum height */}
+                      <div className="flex-1 flex items-end pl-8">
+                        <div className="flex h-full w-full items-end justify-between">
                           {learningTrend.map((point, index) => {
-                            // Lower reveal level is better, so invert for visualization
-                            // 5 is max, so 5 - avg gives us how good they're doing (higher bar = better)
+                            // Ensure bars are always visible with a minimum height of 20%
                             const performanceHeight = 
-                              Math.max(0, Math.min(100, (5 - point.avg_reveal_level) * 20)); // 0-100%
+                              Math.max(20, Math.min(90, (5 - point.avg_reveal_level) * 20));
                             return (
-                              <div key={index} className="flex flex-col items-center group">
-                                <div className="text-xs text-white/50 mb-1 opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full">
-                                  {point.period}
+                              <div key={index} className="flex flex-col items-center group relative px-2">
+                                {/* Tooltip on hover */}
+                                <div className="text-xs bg-black/80 text-white p-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full mb-1 whitespace-nowrap z-10">
+                                  <div className="font-medium">{point.period}</div>
+                                  <div>Efficiency: {Math.floor(performanceHeight)}%</div>
+                                  <div>{point.problems_count} problems solved</div>
                                 </div>
+                                
+                                {/* The actual bar with guaranteed visibility */}
                                 <div 
-                                  className="w-8 bg-amber-500/70 hover:bg-amber-500 transition-colors rounded-t"
-                                  style={{ height: `${performanceHeight}%` }}
-                                >
-                                </div>
+                                  className="w-12 bg-amber-500 hover:bg-amber-400 transition-colors rounded-t cursor-pointer"
+                                  style={{ 
+                                    height: `${performanceHeight}%`,
+                                    minHeight: '110px', // Ensure minimum physical height
+                                  }}
+                                ></div>
                               </div>
                             );
                           })}
                         </div>
                       </div>
-                      <div className="h-8 flex items-center justify-between text-xs text-white/50 mt-2">
+                      
+                      {/* X-axis with month labels */}
+                      <div className="h-8 flex items-center justify-between text-xs text-white/70 mt-2 pl-8">
                         {learningTrend.map((point, index) => (
-                          <div key={index} className="text-center w-8 truncate">
+                          <div key={index} className="text-center px-2 font-medium">
                             {point.period.split('-')[1]}
                           </div>
                         ))}
                       </div>
+                      
+                      {/* Horizontal grid lines for better readability */}
+                      <div className="absolute left-8 right-0 top-0 h-full pointer-events-none">
+                        <div className="border-t border-white/20 absolute top-0 w-full"></div>
+                        <div className="border-t border-white/10 absolute top-1/4 w-full"></div>
+                        <div className="border-t border-white/10 absolute top-2/4 w-full"></div>
+                        <div className="border-t border-white/10 absolute top-3/4 w-full"></div>
+                        <div className="border-t border-white/20 absolute bottom-0 w-full"></div>
+                      </div>
                     </div>
                     
-                    {/* Legend */}
-                    <div className="flex gap-4 justify-center mt-2">
-                      <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-amber-500/70 rounded"></div>
-                        <span className="text-xs text-white/70">Learning efficiency</span>
+                    {/* Enhanced legend with better explanation */}
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-center mt-4 bg-amber-900/20 border border-amber-500/30 p-3 rounded">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 bg-amber-500 rounded"></div>
+                        <span className="text-sm text-white font-medium">Learning Efficiency</span>
                       </div>
-                      <div className="text-xs text-white/50">
-                        Higher = less help needed
+                      <div className="text-sm text-white/80">
+                        Higher bars = less help needed to solve problems
                       </div>
                     </div>
                   </>
